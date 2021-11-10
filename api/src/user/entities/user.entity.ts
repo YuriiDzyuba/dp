@@ -1,5 +1,5 @@
-import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { hash } from 'bcrypt';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { PostEntity } from '../../post/entities/post.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -7,9 +7,11 @@ export class UserEntity {
   id: number;
 
   @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column()
+  @Column({ unique: true })
   username: string;
 
   @Column({ default: '' })
@@ -21,8 +23,9 @@ export class UserEntity {
   @Column({ select: false })
   password: string;
 
-  @BeforeInsert()
-  async hashPassword() {
-    this.password = await hash(this.password, 7);
-  }
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @OneToMany(() => PostEntity, (post) => post.author)
+  posts: PostEntity[];
 }
