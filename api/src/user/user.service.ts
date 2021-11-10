@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { sign } from 'jsonwebtoken';
-import { HASH_SALT, JWT_SECRET } from 'src/config';
+import { HASH_SALT, JWT_SECRET, TOKEN_EXP_IN } from 'src/config';
 import { UserResponseInterface } from './types/userResponse.interface';
 import { hash, compare } from 'bcrypt';
 import { UserType } from './types/user.type';
@@ -116,7 +116,7 @@ export class UserService {
         email: user.email,
       },
       JWT_SECRET,
-      { expiresIn: '3h' },
+      { expiresIn: TOKEN_EXP_IN },
     );
   }
 

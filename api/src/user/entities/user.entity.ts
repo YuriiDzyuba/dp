@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PostEntity } from '../../post/entities/post.entity';
+import { CommentEntity } from '../../comment/entities/comment.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -39,4 +40,7 @@ export class UserEntity {
   @ManyToMany(() => PostEntity)
   @JoinTable()
   likedPosts: PostEntity[];
+
+  @OneToMany(() => CommentEntity, (comment) => comment.user)
+  comments: CommentEntity[];
 }
