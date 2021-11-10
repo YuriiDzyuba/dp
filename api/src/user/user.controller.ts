@@ -19,7 +19,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { User } from './decorators/user.decorator';
 import { UserEntity } from './entities/user.entity';
 
-@Controller('users')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

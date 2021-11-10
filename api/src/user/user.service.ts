@@ -52,7 +52,7 @@ export class UserService {
         email: loginUserDto.email,
       },
       {
-        select: ['id', 'username', 'email', 'description', 'image', 'password'],
+        select: ['id', 'username', 'email', 'summary', 'avatar', 'password'],
       },
     );
 

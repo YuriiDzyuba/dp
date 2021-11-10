@@ -1,34 +1,92 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  ValidationPipe,
+  UsePipes,
+} from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+import { UserEntity } from '../user/entities/user.entity';
+import { User } from '../user/decorators/user.decorator';
+import { AuthGuard } from '../user/guards/auth.guard';
+import { PostEntity } from './entities/post.entity';
 
 @Controller('post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
   @Post()
-  create(@Body() createPostDto: CreatePostDto) {
-    return this.postService.create(createPostDto);
+  @UseGuards(AuthGuard)
+  @UsePipes(new ValidationPipe())
+  async createPost(
+    @User() currentUser: UserEntity,
+    @Body() createPostDto: CreatePostDto,
+  ): Promise<PostEntity> {
+    const newPost = await this.postService.createPost(
+      currentUser,
+      createPostDto,
+    );
+
+    return newPost;
   }
 
   @Get()
-  findAll() {
-    return this.postService.findAll();
+  async findAllPosts() {
+    return this.postService.findAllPosts();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.postService.findOne(+id);
+  @Get(':tag')
+  findManyPostsByTag(@Param('tag') tag: string) {
+    return this.postService.findManyPostsByTag(tag);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postService.update(+id, updatePostDto);
+  @Delete(':post_id')
+  @UseGuards(AuthGuard)
+  async deletePost(
+    @User('id') currentUserId: number,
+    @Param('post_id') postToDeleteId: string,
+  ) {
+    return this.postService.deletePost(currentUserId, postToDeleteId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postService.remove(+id);
+  @Post(':post_id/like')
+  @UseGuards(AuthGuard)
+  likePost(
+    @User('id') currentUserId: number,
+    @Param('post_id') postToLikeId: string,
+  ) {
+    return this.postService.likePost(currentUserId, postToLikeId);
   }
+
+  @Delete(':post_id/dislike')
+  @UseGuards(AuthGuard)
+  disLikePost(
+    @User('id') currentUserId: number,
+    @Param('post_id') postToDislikeId: string,
+  ) {
+    return this.postService.disLikePost(currentUserId, postToDislikeId);
+  }
+
+  // @Post(':post_id/add_comment')
+  // @UseGuards(AuthGuard)
+  // addCommentToPost(
+  //   @User('id') currentUserId: number,
+  //   @Param('post_id') postToLikeId: string,
+  // ) {
+  //   return this.postService.addCommentToPost(currentUserId, postToLikeId);
+  // }
+  //
+  // @Delete(':post_id/delete_comment')
+  // @UseGuards(AuthGuard)
+  // deleteCommentToPost(
+  //   @User('id') currentUserId: number,
+  //   @Param('post_id') postToDislikeId: string,
+  // ) {
+  //   return this.postService.deleteCommentToPost(currentUserId, postToDislikeId);
+  // }
 }

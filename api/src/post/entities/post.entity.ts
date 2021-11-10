@@ -15,6 +15,9 @@ export class PostEntity {
   @Column({ default: '' })
   body: string;
 
+  @Column({ default: '' })
+  image: string;
+
   @Column('simple-array')
   tagList: string[];
 

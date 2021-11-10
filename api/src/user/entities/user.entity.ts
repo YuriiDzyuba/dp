@@ -1,4 +1,11 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { PostEntity } from '../../post/entities/post.entity';
 
 @Entity({ name: 'users' })
@@ -15,10 +22,10 @@ export class UserEntity {
   username: string;
 
   @Column({ default: '' })
-  description: string;
+  summary: string;
 
   @Column({ default: '' })
-  image: string;
+  avatar: string;
 
   @Column({ select: false })
   password: string;
@@ -28,4 +35,8 @@ export class UserEntity {
 
   @OneToMany(() => PostEntity, (post) => post.author)
   posts: PostEntity[];
+
+  @ManyToMany(() => PostEntity)
+  @JoinTable()
+  likedPosts: PostEntity[];
 }
