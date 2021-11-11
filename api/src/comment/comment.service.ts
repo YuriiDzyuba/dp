@@ -1,9 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
+import { EditCommentDto } from './dto/edit-comment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PostEntity } from '../post/entities/post.entity';
-import { Repository } from 'typeorm';
+import { getRepository, Repository } from 'typeorm';
 import { CommentEntity } from './entities/comment.entity';
 
 @Injectable()
@@ -38,19 +38,57 @@ export class CommentService {
     return await this.commentRepository.save(newComment);
   }
 
-  async findAll() {
-    return await this.commentRepository.find();
+  async editComment(
+    commentId: string,
+    currentUserId: number,
+    editCommentDto: EditCommentDto,
+  ) {
+    const commentToEdit = await this._getUsersComment(commentId, currentUserId);
+
+    Object.assign(commentToEdit, editCommentDto);
+    await this.commentRepository.save(commentToEdit);
+
+    return commentToEdit;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} comment`;
+  async deleteComment(commentId: string, currentUserId: number) {
+    console.log(commentId, 'ggggggggggggggggggggggggggggggggggggg');
+    console.log(currentUserId, 'ggggggggggggggggggggggggggggggggggggg');
+    const commentToDelete = await this._getUsersComment(
+      commentId,
+      currentUserId,
+    );
+
+    const { affected } = await this.commentRepository.delete({
+      id: commentToDelete.id,
+    });
+
+    return affected ? 'deleted successfully' : "can't find comment";
   }
 
-  update(id: number, updateCommentDto: UpdateCommentDto) {
-    return `This action updates a #${id} comment`;
+  async _getUsersComment(commentId: string, currentUserId: number) {
+    const comment = await getRepository(CommentEntity)
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.user', 'user')
+      .where('user.id = :id', { id: currentUserId })
+      .andWhere('comment.id = :comment_id', { comment_id: +commentId })
+      .getOne();
+
+    if (!comment) {
+      throw new HttpException(
+        { message: "cant't find comment" },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return comment;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} comment`;
+  async findAllUserComments(currentUserId: number) {
+    return await getRepository(CommentEntity)
+      .createQueryBuilder('comment')
+      .leftJoin('comment.user', 'user')
+      .where('user.id = :id', { id: currentUserId })
+      .getMany();
   }
 }

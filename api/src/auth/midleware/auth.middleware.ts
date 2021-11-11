@@ -36,7 +36,7 @@ export class AuthMiddleware implements NestMiddleware {
       );
       const user = await this.userService.findUserById(decodedUserData.id);
 
-      if (user) {
+      if (!user) {
         throw new Error();
       }
 

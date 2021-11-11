@@ -8,7 +8,6 @@ import { AuthMiddleware } from './auth/midleware/auth.middleware';
 import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { AuthModule } from './auth/auth.module';
-import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { EmailModule } from './email/email.module';
     PostModule,
     CommentModule,
     AuthModule,
-    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

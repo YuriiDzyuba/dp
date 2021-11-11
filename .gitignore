@@ -2,7 +2,7 @@
 */dist
 */node_modules
 /client
-/api/src/config
+/api/src/config/index.ts
 # Logs
 logs
 *.log
