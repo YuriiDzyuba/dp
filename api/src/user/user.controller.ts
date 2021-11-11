@@ -14,7 +14,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseInterface } from './types/userResponse.interface';
-import { AuthGuard } from './guards/auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import { User } from './decorators/user.decorator';
 import { UserEntity } from './entities/user.entity';
 

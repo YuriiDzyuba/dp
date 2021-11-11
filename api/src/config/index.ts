@@ -1,7 +1,8 @@
 export const ACCESS_JWT_SECRET = 'edadadsdsds';
 export const REFRESH_JWT_SECRET = 'edadadsdsds';
 export const HASH_SALT = 7;
-export const TOKEN_EXP_IN = '8h';
+export const ACCESS_TOKEN_EXP_IN = '8h';
+export const REFRESH_TOKEN_EXP_IN = '9h';
 
 export const GOOGLE_REDIRECT_LINK = `http://localhost:5000/api/auth/google_redirect`;
 export const GOOGLE_CLIENT_SECRET = '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';

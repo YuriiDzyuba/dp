@@ -7,8 +7,8 @@ import {
 import { NextFunction, Response } from 'express';
 import { ExpressRequestInterface } from '../../types/expressRequest.interface';
 import { verify } from 'jsonwebtoken';
-import { ACCESS_JWT_SECRET } from '../../config';
-import { UserService } from '../user.service';
+import { ACCESS_JWT_SECRET, REFRESH_JWT_SECRET } from '../../config';
+import { UserService } from '../../user/user.service';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
@@ -21,22 +21,30 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     const tokenName = req.headers.authorization.split(' ')[0];
+    const token = req.headers.authorization.split(' ')[1];
 
-    if (tokenName !== 'access') {
+    if (tokenName !== 'accessToken' && tokenName !== 'refreshToken') {
       req.currentUser = null;
       next();
       return;
     }
 
-    const token = req.headers.authorization.split(' ')[1];
-
     try {
-      const decodedUserData = verify(token, ACCESS_JWT_SECRET);
+      const decodedUserData = verify(
+        token,
+        tokenName === 'accessToken' ? ACCESS_JWT_SECRET : REFRESH_JWT_SECRET,
+      );
       const user = await this.userService.findUserById(decodedUserData.id);
 
-      req.currentUser = user;
+      if (user) {
+        throw new Error();
+      }
+
+      tokenName === 'accessToken'
+        ? (req.currentUser = user)
+        : (req.userToRefreshTokens = user);
     } catch (err) {
-      throw new HttpException('not authorized', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(`invalid ${tokenName}`, HttpStatus.UNAUTHORIZED);
     }
 
     next();

@@ -13,7 +13,7 @@ import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserEntity } from '../user/entities/user.entity';
 import { User } from '../user/decorators/user.decorator';
-import { AuthGuard } from '../user/guards/auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import { PostEntity } from './entities/post.entity';
 
 @Controller('post')

@@ -6,9 +6,10 @@ import { UserEntity } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import {
   ACCESS_JWT_SECRET,
+  ACCESS_TOKEN_EXP_IN,
   HASH_SALT,
   REFRESH_JWT_SECRET,
-  TOKEN_EXP_IN,
+  REFRESH_TOKEN_EXP_IN,
 } from 'src/config';
 import { hash, compare } from 'bcrypt';
 import { UserType } from './types/user.type';
@@ -115,8 +116,11 @@ export class UserService {
         username: user.username,
         email: user.email,
       },
-      tokenType === 'refresh' ? ACCESS_JWT_SECRET : REFRESH_JWT_SECRET,
-      { expiresIn: TOKEN_EXP_IN },
+      tokenType === 'refresh' ? REFRESH_JWT_SECRET : ACCESS_JWT_SECRET,
+      {
+        expiresIn:
+          tokenType === 'refresh' ? REFRESH_TOKEN_EXP_IN : ACCESS_TOKEN_EXP_IN,
+      },
     );
   }
 

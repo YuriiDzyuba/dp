@@ -7,11 +7,15 @@ import {
   UsePipes,
   ValidationPipe,
   Body,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { UserResponseInterface } from '../user/types/userResponse.interface';
 import { LoginUserDto } from '../user/dto/loginUser.dto';
+import { RefreshTokensGuard } from './guards/refreshTokens.guard';
+import { ExpressRequestInterface } from '../types/expressRequest.interface';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,13 +32,19 @@ export class AuthController {
     return this.userService.buildUserResponse(user);
   }
 
+  @Get('refresh_token')
+  @UseGuards(RefreshTokensGuard)
+  genNewTokenPair(@Req() request: ExpressRequestInterface) {
+    return this.userService.buildUserResponse(request.userToRefreshTokens);
+  }
+
   @Get('google_redirect')
   async googleAuthRedirect(
     @Query('code')
     code: string,
   ) {
     const googleUser = await this.authService.getGoogleUser(code);
-    console.log(googleUser, 'googleUser');
+
     const foundedUser = await this.userService.findOneUserByEmail(
       googleUser.email,
     );
@@ -43,6 +53,7 @@ export class AuthController {
       const newApplicant = this.authService.normalizeGoogleUser(googleUser);
 
       const newUser = await this.userService.registerNewUser(newApplicant);
+
       return this.userService.buildUserResponse(newUser);
     }
 

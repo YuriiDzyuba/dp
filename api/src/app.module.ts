@@ -4,10 +4,11 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import ormConfig from './config/ormConfig';
-import { AuthMiddleware } from './user/midleware/auth.middleware';
+import { AuthMiddleware } from './auth/midleware/auth.middleware';
 import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { AuthModule } from './auth/auth.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
     PostModule,
     CommentModule,
     AuthModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
