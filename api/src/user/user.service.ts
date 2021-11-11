@@ -4,12 +4,17 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { sign } from 'jsonwebtoken';
-import { HASH_SALT, JWT_SECRET, TOKEN_EXP_IN } from 'src/config';
-import { UserResponseInterface } from './types/userResponse.interface';
+import {
+  ACCESS_JWT_SECRET,
+  HASH_SALT,
+  REFRESH_JWT_SECRET,
+  TOKEN_EXP_IN,
+} from 'src/config';
 import { hash, compare } from 'bcrypt';
 import { UserType } from './types/user.type';
 import { LoginUserDto } from './dto/loginUser.dto';
+import { UserResponseInterface } from './types/userResponse.interface';
+import { sign } from 'jsonwebtoken';
 
 @Injectable()
 export class UserService {
@@ -18,16 +23,14 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
   ) {}
 
-  async create(candidate: CreateUserDto): Promise<UserType> {
-    const userByEmail = await this.userRepository.findOne({
-      email: candidate.email,
+  async registerNewUser(candidate: CreateUserDto): Promise<UserType> {
+    console.log(candidate, 'candidate');
+
+    const existingUser = await this.userRepository.findOne({
+      where: [{ email: candidate.email }, { username: candidate.username }],
     });
 
-    const userByUsername = await this.userRepository.findOne({
-      username: candidate.username,
-    });
-
-    if (userByEmail || userByUsername) {
+    if (existingUser) {
       throw new HttpException(
         { message: 'user exists' },
         HttpStatus.UNPROCESSABLE_ENTITY,
@@ -39,6 +42,7 @@ export class UserService {
     const userToSave = new UserEntity();
     Object.assign(userToSave, candidate);
     userToSave.password = hashedPassword;
+    userToSave.username = candidate.username;
 
     const newUser = await this.userRepository.save(userToSave);
 
@@ -85,12 +89,12 @@ export class UserService {
     return await this.userRepository.findOne(id);
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    return await this.userRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOneUserByEmail(email: string): Promise<UserType> {
+    return await this.userRepository.findOne({ email });
   }
 
   async updateCurrentUser(
@@ -104,18 +108,14 @@ export class UserService {
     return updatedUser;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
-
-  generateToken(user: UserType): string {
+  generateToken(user: UserType, tokenType = 'access'): string {
     return sign(
       {
         id: user.id,
         username: user.username,
         email: user.email,
       },
-      JWT_SECRET,
+      tokenType === 'refresh' ? ACCESS_JWT_SECRET : REFRESH_JWT_SECRET,
       { expiresIn: TOKEN_EXP_IN },
     );
   }
@@ -123,7 +123,8 @@ export class UserService {
   buildUserResponse(user: UserType): UserResponseInterface {
     return {
       ...user,
-      token: this.generateToken(user),
+      accessToken: this.generateToken(user),
+      refreshToken: this.generateToken(user, 'refresh'),
     };
   }
 }

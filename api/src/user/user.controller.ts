@@ -14,7 +14,6 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseInterface } from './types/userResponse.interface';
-import { LoginUserDto } from './dto/loginUser.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { User } from './decorators/user.decorator';
 import { UserEntity } from './entities/user.entity';
@@ -22,25 +21,6 @@ import { UserEntity } from './entities/user.entity';
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
-  @Post('registration')
-  @UsePipes(new ValidationPipe())
-  async create(
-    @Body() candidate: CreateUserDto,
-  ): Promise<UserResponseInterface> {
-    const newUser = await this.userService.create(candidate);
-    return this.userService.buildUserResponse(newUser);
-  }
-
-  @Post('login')
-  @UsePipes(new ValidationPipe())
-  async login(
-    @Body() loginUserDto: LoginUserDto,
-  ): Promise<UserResponseInterface> {
-    const user = await this.userService.login(loginUserDto);
-
-    return this.userService.buildUserResponse(user);
-  }
 
   @Get()
   //@UseGuards(AuthGuard)
@@ -50,7 +30,16 @@ export class UserController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+    return this.userService.findUserById(+id);
+  }
+
+  @Post('registration')
+  @UsePipes(new ValidationPipe())
+  async registerNewUser(
+    @Body() candidate: CreateUserDto,
+  ): Promise<UserResponseInterface> {
+    const newUser = await this.userService.registerNewUser(candidate);
+    return this.userService.buildUserResponse(newUser);
   }
 
   @Patch()
@@ -64,10 +53,5 @@ export class UserController {
       updateUserDto,
     );
     return this.userService.buildUserResponse(updatedUser);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
   }
 }

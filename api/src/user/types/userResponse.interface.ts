@@ -1,5 +1,6 @@
 import { UserType } from './user.type';
 
 export interface UserResponseInterface extends UserType {
-  token: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
 }
