@@ -15,7 +15,9 @@ import { UserEntity } from '../user/entities/user.entity';
 import { User } from '../user/decorators/user.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { PostEntity } from './entities/post.entity';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('posts module')
 @Controller('post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
