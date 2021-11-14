@@ -6,13 +6,8 @@ import * as path from 'path';
 import { FollowEntity } from '../profile/entities/follow.entity';
 
 const config: ConnectionOptions = {
-  //url: process.env.DATABASE_URL,
   type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  username: 'instagramuser',
-  password: '8848',
-  database: 'instagram',
+  url: process.env.DATABASE_URL,
   entities: [UserEntity, PostEntity, CommentEntity, FollowEntity],
   synchronize: false,
   migrations: [path.join(__dirname + '../../migrations/**/*{.ts,.js}')], //?
