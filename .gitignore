@@ -1,19 +1,19 @@
 # compiled output
 */dist
 */node_modules
-/client
-/api/src/config/index.ts
+*/src/config/index.ts
+*/.env
 # Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+*/logs
+*/*.log
+*/npm-debug.log*
+*/pnpm-debug.log*
+*/yarn-debug.log*
+*/yarn-error.log*
+*/lerna-debug.log*
 
 # OS
-.DS_Store
+*/.DS_Store
 
 # Tests
 /coverage
@@ -33,4 +33,4 @@ lerna-debug.log*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
-!.vscode/extensions.jso
+!.vscode/extensions.json

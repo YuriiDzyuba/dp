@@ -7,7 +7,6 @@ import {
 import { NextFunction, Response } from 'express';
 import { ExpressRequestInterface } from '../../types/expressRequest.interface';
 import { verify } from 'jsonwebtoken';
-import { ACCESS_JWT_SECRET, REFRESH_JWT_SECRET } from '../../config';
 import { UserService } from '../../user/user.service';
 
 @Injectable()
@@ -32,7 +31,9 @@ export class AuthMiddleware implements NestMiddleware {
     try {
       const decodedUserData = verify(
         token,
-        tokenName === 'accessToken' ? ACCESS_JWT_SECRET : REFRESH_JWT_SECRET,
+        tokenName === 'accessToken'
+          ? process.env.ACCESS_JWT_SECRET
+          : process.env.REFRESH_JWT_SECRET,
       );
       const user = await this.userService.findUserById(decodedUserData.id);
 

@@ -2,8 +2,10 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserEntity } from '../user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, getRepository } from 'typeorm';
+import { getRepository, Repository } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
+import { FollowEntity } from '../profile/entities/follow.entity';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostService {
@@ -12,6 +14,8 @@ export class PostService {
     private readonly postRepository: Repository<PostEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(FollowEntity)
+    private readonly followRepository: Repository<FollowEntity>,
   ) {}
 
   async createPost(
@@ -30,36 +34,97 @@ export class PostService {
     return await this.postRepository.save(post);
   }
 
-  async findAllPosts() {
-    return await this.postRepository.find();
+  async editPostById(
+    currentUserId: number,
+    updatePostDto: UpdatePostDto,
+    postToUpdateId: number,
+  ): Promise<PostEntity> {
+    const postToUpdate = await getRepository(PostEntity)
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('author.id = :id', { id: currentUserId })
+      .andWhere('post.id = :post_id', { post_id: +postToUpdateId })
+      .getOne();
+
+    if (!postToUpdate) {
+      throw new HttpException(
+        { message: "can't find post" },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    Object.assign(postToUpdate, updatePostDto);
+
+    return await this.postRepository.save(postToUpdate);
+  }
+
+  async getUserNewsPage(
+    pageOwnerUserId: number,
+    query: any,
+  ): Promise<PostEntity[]> {
+    const followingUsers = await this.followRepository.find({
+      followerId: pageOwnerUserId,
+    });
+
+    if (!followingUsers.length) {
+      return [];
+    }
+
+    const followingUserIds = followingUsers.map((follow) => follow.followingId);
+    followingUserIds.push(+pageOwnerUserId);
+
+    const queryBuilder = getRepository(PostEntity)
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('post.authorId IN (:...ids)', { ids: followingUserIds })
+      .orderBy('post.createdAt', 'DESC');
+
+    if (query.limit) {
+      queryBuilder.limit(query.limit);
+    }
+
+    if (query.offset) {
+      queryBuilder.offset(query.offset);
+    }
+
+    return await queryBuilder.getMany();
   }
 
   async findManyPostsByTag(tag: string) {
     const queryBuilder = getRepository(PostEntity)
       .createQueryBuilder('posts')
-      .leftJoinAndSelect('posts.author', 'author')
       .where('posts.tagList LIKE :tag', {
         tag: `%${tag}%`,
       });
 
     const posts = await queryBuilder.getMany();
-    const postsCount = await queryBuilder.getCount();
 
-    return { posts, postsCount };
+    return posts;
   }
 
   async deletePost(currentUserId: number, postToDeleteId: string) {
-    const postToDelete = await this.findPostById(+postToDeleteId);
+    const postToDelete = await this.postRepository.findOne(+postToDeleteId, {
+      loadRelationIds: true,
+    });
 
-    if (postToDelete.author.id !== currentUserId) {
+    if (!postToDelete) {
+      throw new HttpException("can't find post", HttpStatus.FORBIDDEN);
+    }
+
+    if (Number(postToDelete.author) !== currentUserId) {
       throw new HttpException('access denied ', HttpStatus.FORBIDDEN);
     }
 
     return await this.postRepository.delete({ id: +postToDeleteId });
   }
 
-  async likePost(currentUserId: number, postToDeleteId: string) {
-    const postToLike = await this.findPostById(+postToDeleteId);
+  async likePost(currentUserId: number, postToLikeId: string) {
+    const postToLike = await this.findPostById(+postToLikeId);
+
+    if (!postToLike) {
+      throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
+    }
+
     const user = await this.userRepository.findOne(currentUserId, {
       relations: ['likedPosts'],
     });
@@ -80,6 +145,11 @@ export class PostService {
 
   async disLikePost(currentUserId: number, postToDislikeId: string) {
     const postToDislike = await this.findPostById(+postToDislikeId);
+
+    if (!postToDislike) {
+      throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
+    }
+
     const user = await this.userRepository.findOne(currentUserId, {
       relations: ['likedPosts'],
     });

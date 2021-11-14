@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  api:
+    build: ./api
+#    command: npm install
+#    command: db:migrate
+#    command: npm run start
+    restart: unless-stopped
+    ports:
+      - "80:5000"
+    environment:
+      DATABASE_URL: postgres://instagramuser:8848@postgres:5432/instagram
+      PORT: 80
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13.4
+    environment:
+      POSTGRES_USER: instagramuser
+      POSTGRES_PASSWORD: 8848
+      POSTGRES_DB: instagram
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - .:/var/lib/postgresql/data
+    ports:
+      - "35000:5432"

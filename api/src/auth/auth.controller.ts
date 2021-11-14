@@ -19,6 +19,7 @@ import { RefreshTokensGuard } from './guards/refreshTokens.guard';
 import { ExpressRequestInterface } from '../types/expressRequest.interface';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserEntity } from '../user/entities/user.entity';
+import { EmailService } from '../email/email.service';
 
 @ApiTags('auth module')
 @Controller('auth')
@@ -26,6 +27,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly emailService: EmailService,
   ) {}
 
   @ApiOperation({ summary: 'login user by email and password' })
@@ -76,6 +78,7 @@ export class AuthController {
 
       const newUser = await this.userService.registerNewUser(newApplicant);
 
+      this.emailService.sendMailToNewUser(newUser, newApplicant.password);
       return this.userService.buildUserResponse(newUser);
     }
 

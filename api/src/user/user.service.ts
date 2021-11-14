@@ -4,14 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import {
-  ACCESS_JWT_SECRET,
-  ACCESS_TOKEN_EXP_IN,
-  HASH_SALT,
-  REFRESH_JWT_SECRET,
-  REFRESH_TOKEN_EXP_IN,
-} from 'src/config';
-import { hash, compare } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { UserType } from './types/user.type';
 import { LoginUserDto } from './dto/loginUser.dto';
 import { UserResponseInterface } from './types/userResponse.interface';
@@ -25,8 +18,6 @@ export class UserService {
   ) {}
 
   async registerNewUser(candidate: CreateUserDto): Promise<UserType> {
-    console.log(candidate, 'candidate');
-
     const existingUser = await this.userRepository.findOne({
       where: [{ email: candidate.email }, { username: candidate.username }],
     });
@@ -38,7 +29,10 @@ export class UserService {
       );
     }
 
-    const hashedPassword = await hash(candidate.password, HASH_SALT);
+    const hashedPassword = await hash(
+      candidate.password,
+      Number(process.env.HASH_SALT),
+    );
 
     const userToSave = new UserEntity();
     Object.assign(userToSave, candidate);
@@ -90,7 +84,17 @@ export class UserService {
     return await this.userRepository.findOne(id);
   }
 
-  async findAll() {
+  async findUsersByNames(usersNames: string[]): Promise<UserEntity[]> {
+    const namesToFind = usersNames.map((userName) => ({
+      username: userName,
+    }));
+
+    return await this.userRepository.find({
+      where: namesToFind,
+    });
+  }
+
+  async findAllUsersByQuery() {
     return await this.userRepository.find();
   }
 
@@ -102,11 +106,19 @@ export class UserService {
     currentUser: UserEntity,
     updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
-    const updatedUser = await this.userRepository.save({
-      ...currentUser,
-      ...updateUserDto,
-    });
-    return updatedUser;
+    try {
+      const updatedUser = await this.userRepository.save({
+        ...currentUser,
+        ...updateUserDto,
+      });
+
+      return updatedUser;
+    } catch (err) {
+      throw new HttpException(
+        { message: `username should be unique` },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   generateToken(user: UserType, tokenType = 'access'): string {
@@ -116,10 +128,14 @@ export class UserService {
         username: user.username,
         email: user.email,
       },
-      tokenType === 'refresh' ? REFRESH_JWT_SECRET : ACCESS_JWT_SECRET,
+      tokenType === 'refresh'
+        ? process.env.REFRESH_JWT_SECRET
+        : process.env.ACCESS_JWT_SECRET,
       {
         expiresIn:
-          tokenType === 'refresh' ? REFRESH_TOKEN_EXP_IN : ACCESS_TOKEN_EXP_IN,
+          tokenType === 'refresh'
+            ? process.env.REFRESH_TOKEN_EXP_IN
+            : process.env.ACCESS_TOKEN_EXP_IN,
       },
     );
   }

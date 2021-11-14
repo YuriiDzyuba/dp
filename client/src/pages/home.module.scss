@@ -1,0 +1,23 @@
+@import "../styles/bootstrap.variables";
+
+.searchBlock {
+  background-color: $orange;
+}
+
+.searchBlock__inputGroup {
+  padding: 4rem 0;
+}
+
+.searchBlock__input {
+  padding: 1rem;
+}
+
+.topAgents {
+  background-color: $orange;
+  padding: 3rem 0;
+}
+.topBanks {
+  background-color: $cyan;
+  padding: 3rem;
+}
+

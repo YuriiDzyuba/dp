@@ -2,11 +2,20 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function bootstrap() {
+  const httpsOptions = {
+    cert: fs.readFileSync(path.join(__dirname + '../../cert.pem')),
+    key: fs.readFileSync(path.join(__dirname + '../../key.pem')),
+  };
+
   const PORT = process.env.PORT || 5000;
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions,
+  });
   app.setGlobalPrefix('api');
   app.enableCors();
   app.use(cookieParser());

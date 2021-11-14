@@ -1,0 +1,59 @@
+@import 'bootstrap.variables';
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+
+.form-control{
+  padding: .6rem .5rem;
+}
+
+.shop__leftColumn {
+  padding-top: 1rem;
+
+  .list-group-item {
+    cursor: pointer;
+  }
+}
+
+
+.shop__rightColumn {
+  padding-top: 1rem;
+}
+
+
+.brandBar__cart {
+  padding: .5rem;
+  width: auto;
+  cursor: pointer;
+}
+
+.deviceList__item{
+  border:1px solid rebeccapurple;
+  cursor: pointer;
+
+  img {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+  }
+  .deviceList__item_rating {
+    img{
+      margin-left: -2px;
+      margin-bottom: 5px;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+}
+
+.devicePage{
+
+
+  .devicePage__header_rating{
+
+    p{
+      font-size: 10rem;
+    }
+  }
+
+}

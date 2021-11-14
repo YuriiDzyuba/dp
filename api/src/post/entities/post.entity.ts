@@ -34,7 +34,7 @@ export class PostEntity {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @ManyToOne(() => UserEntity, (user) => user.posts, { eager: true })
+  @ManyToOne(() => UserEntity, (user) => user.posts)
   author: UserEntity;
 
   @OneToMany(() => CommentEntity, (comment) => comment.post)

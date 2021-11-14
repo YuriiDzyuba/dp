@@ -1,9 +1,4 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import {
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_LINK,
-} from '../config';
 import * as querystring from 'querystring';
 import axios from 'axios';
 import { createUniqueString } from '../utils/createUniqueString';
@@ -15,8 +10,8 @@ export class AuthService {
   getLinkToGoogleAccount() {
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
-      redirect_uri: `http://localhost:5000/api/auth/google_redirect`,
-      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: `${process.env.HOME_DOMAIN}/api/auth/google_redirect`,
+      client_id: process.env.GOOGLE_CLIENT_ID,
       access_type: 'offline',
       response_type: 'code',
       prompt: 'consent',
@@ -32,9 +27,9 @@ export class AuthService {
   async getGoogleUser(code: string): Promise<GoogleUserType> {
     const { id_token, access_token } = await this._getGoogleTokens({
       code,
-      clientId: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      redirectUri: GOOGLE_REDIRECT_LINK,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri: `${process.env.HOME_DOMAIN}/api/auth/google_redirect`,
     });
 
     const googleUser = await this._getUserByTokens(id_token, access_token);

@@ -1,0 +1,51 @@
+@import "../styles/bootstrap.variables";
+
+.userAccount__userData {
+  padding: 2rem 0;
+  background-color: $cyan;
+}
+
+.userAccount__avatarWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+}
+
+.userAccount__avatar {
+  max-height: 12rem;
+  max-width: 12rem;
+}
+
+.userAccount__headersWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.userAccount__headersRow {
+  padding: 1rem 0;
+}
+
+.userAccount__addBank {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.userAccount__cards {
+  background-color: $purple;
+}
+
+.userAccount__cardsHeader {
+  margin: 1.5rem 0;
+  padding: .75rem 1rem;
+  background-color: $gray-200;
+  border-radius: 4px 1.75rem;
+
+  h3 {
+    margin-bottom: 0;
+  }
+}

@@ -3,19 +3,25 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import ormConfig from './config/ormConfig';
 import { AuthMiddleware } from './auth/midleware/auth.middleware';
 import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { AuthModule } from './auth/auth.module';
+import { ProfileModule } from './profile/profile.module';
+import { ConfigModule } from '@nestjs/config';
+import config from './config/ormConfig';
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     UserModule,
-    TypeOrmModule.forRoot(ormConfig),
+    TypeOrmModule.forRoot(config),
     PostModule,
     CommentModule,
     AuthModule,
+    ProfileModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

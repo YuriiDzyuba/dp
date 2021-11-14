@@ -52,8 +52,6 @@ export class CommentService {
   }
 
   async deleteComment(commentId: string, currentUserId: number) {
-    console.log(commentId, 'ggggggggggggggggggggggggggggggggggggg');
-    console.log(currentUserId, 'ggggggggggggggggggggggggggggggggggggg');
     const commentToDelete = await this._getUsersComment(
       commentId,
       currentUserId,
@@ -76,7 +74,7 @@ export class CommentService {
 
     if (!comment) {
       throw new HttpException(
-        { message: "cant't find comment" },
+        { message: "can't find comment" },
         HttpStatus.BAD_REQUEST,
       );
     }

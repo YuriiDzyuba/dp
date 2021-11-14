@@ -1,0 +1,16 @@
+@import '../styles/bootstrap.variables';
+
+.registrationPage {
+  min-height: 60vh;
+  a {
+    color: $dark;
+  }
+  padding: 4rem 0;
+}
+
+.registrationPage__form {
+  min-width: 70%;
+  background: $cyan;
+  border-radius: .4rem;
+  padding: 2rem;
+}

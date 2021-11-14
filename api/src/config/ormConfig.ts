@@ -3,6 +3,7 @@ import { UserEntity } from '../user/entities/user.entity';
 import { PostEntity } from '../post/entities/post.entity';
 import { CommentEntity } from '../comment/entities/comment.entity';
 import * as path from 'path';
+import { FollowEntity } from '../profile/entities/follow.entity';
 
 const config: ConnectionOptions = {
   //url: process.env.DATABASE_URL,
@@ -12,7 +13,7 @@ const config: ConnectionOptions = {
   username: 'instagramuser',
   password: '8848',
   database: 'instagram',
-  entities: [UserEntity, PostEntity, CommentEntity],
+  entities: [UserEntity, PostEntity, CommentEntity, FollowEntity],
   synchronize: false,
   migrations: [path.join(__dirname + '../../migrations/**/*{.ts,.js}')], //?
   cli: {
