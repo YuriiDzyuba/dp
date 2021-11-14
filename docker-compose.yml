@@ -3,7 +3,7 @@ version: '3'
 services:
   api:
     build: ./api
-#    command: npm run db:migrate
+    command: npm run db:migrate
 #    command: npm run start
     restart: unless-stopped
     ports:
