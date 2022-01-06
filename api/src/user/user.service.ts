@@ -1,26 +1,24 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
-import { Repository } from 'typeorm';
 import { compare, hash } from 'bcrypt';
 import { UserType } from './types/user.type';
 import { LoginUserDto } from './dto/loginUser.dto';
 import { UserResponseInterface } from './types/userResponse.interface';
 import { sign } from 'jsonwebtoken';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async registerNewUser(candidate: CreateUserDto): Promise<UserType> {
-    const existingUser = await this.userRepository.findOne({
-      where: [{ email: candidate.email }, { username: candidate.username }],
-    });
+    const existingUser =
+      await this.userRepository.findOneUserByEmailAndUserName(
+        candidate.email,
+        candidate.username,
+      );
 
     if (existingUser) {
       throw new HttpException(
@@ -39,21 +37,17 @@ export class UserService {
     userToSave.password = hashedPassword;
     userToSave.username = candidate.username;
 
-    const newUser = await this.userRepository.save(userToSave);
+    const newUser = await this.userRepository.saveNewUser(userToSave);
 
     delete newUser.password;
     return newUser;
   }
 
   async login(loginUserDto: LoginUserDto): Promise<UserType> {
-    const userByEmail = await this.userRepository.findOne(
-      {
-        email: loginUserDto.email,
-      },
-      {
-        select: ['id', 'username', 'email', 'summary', 'avatar', 'password'],
-      },
-    );
+    const userByEmail =
+      await this.userRepository.findOneUserWithPasswordByEmail(
+        loginUserDto.email,
+      );
 
     if (!userByEmail) {
       throw new HttpException(
@@ -81,7 +75,7 @@ export class UserService {
   }
 
   async findUserById(id: number): Promise<UserEntity> {
-    return await this.userRepository.findOne(id);
+    return await this.userRepository.findUserById(id);
   }
 
   async findUsersByNames(usersNames: string[]): Promise<UserEntity[]> {
@@ -89,17 +83,15 @@ export class UserService {
       username: userName,
     }));
 
-    return await this.userRepository.find({
-      where: namesToFind,
-    });
+    return await this.userRepository.findManyUsersByUserName(namesToFind);
   }
 
   async findAllUsersByQuery() {
-    return await this.userRepository.find();
+    return await this.userRepository.getAllUsers();
   }
 
   async findOneUserByEmail(email: string): Promise<UserType> {
-    return await this.userRepository.findOne({ email });
+    return await this.userRepository.findOneUserByEmail(email);
   }
 
   async updateCurrentUser(
@@ -107,12 +99,10 @@ export class UserService {
     updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
     try {
-      const updatedUser = await this.userRepository.save({
-        ...currentUser,
-        ...updateUserDto,
-      });
-
-      return updatedUser;
+      return await this.userRepository.updateCurrentUser(
+        currentUser,
+        updateUserDto,
+      );
     } catch (err) {
       throw new HttpException(
         { message: `username should be unique` },

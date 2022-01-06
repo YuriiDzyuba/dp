@@ -11,7 +11,7 @@ const testConfig: ConnectionOptions = {
   port: 5432,
   username: 'postgres',
   password: '8848',
-  database: 'test',
+  database: 'instagram_test',
   entities: [UserEntity, PostEntity, CommentEntity, FollowEntity],
   synchronize: true,
 };

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostService } from './post.service';
-import { getRegistrationToken } from '@nestjs/config/dist/utils/get-registration-token.util';
 import { PostEntity } from './entities/post.entity';
 import { UserEntity } from '../user/entities/user.entity';
 import { FollowEntity } from '../profile/entities/follow.entity';
@@ -18,6 +17,7 @@ describe('PostService', () => {
     imageFilter: 'multi',
     image: '',
   };
+
   const mockFoundedPost = {
     title: 'It was popul 1960s ',
     description: 'survived not ce',
@@ -54,6 +54,7 @@ describe('PostService', () => {
       .fn()
       .mockImplementation(({ id: postToDeleteId }) => ({ affected: 1 })),
   };
+
   const mockUserRepository = {
     find: jest.fn().mockImplementation((dto) => dto),
     findOne: jest.fn().mockImplementation((currentUserId) => ({
@@ -62,6 +63,7 @@ describe('PostService', () => {
     })),
     save: jest.fn().mockImplementation((dto) => Promise.resolve()),
   };
+
   const mockFollowRepository3 = {};
 
   beforeEach(async () => {

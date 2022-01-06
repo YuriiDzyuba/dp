@@ -34,3 +34,8 @@
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+docker-compose.yml
+
+api/src/config/index.ts
+api/coverage
