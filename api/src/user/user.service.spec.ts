@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
+import { UserRepository } from './user.repository';
+import { CreateUserDto } from './dto/create-user.dto';
+import { createUniqueString } from '../utils/createUniqueString';
 
 describe('UserService', () => {
   test('will receive process.env variables', () => {
@@ -12,6 +14,19 @@ describe('UserService', () => {
   });
 
   let service: UserService;
+
+  const mockNewUser: CreateUserDto = {
+    username: `user-${createUniqueString()}`,
+    email: `${createUniqueString()}@mail.vgo`,
+    password: 'qwerty',
+  };
+
+  const mockNewUserDbData = {
+    createdAt: new Date(),
+    id: 34323,
+    avatar: '',
+    summary: '',
+  };
 
   const mockUser: UserEntity = {
     username: 'Andrey',
@@ -26,25 +41,53 @@ describe('UserService', () => {
     comments: [],
   };
 
+  const mockWrongPasswordUser = {
+    username: mockUser.username,
+    email: mockUser.email,
+    password: `${mockUser.password}r`,
+  };
+
+  const mockUserHashedPassword =
+    '$2b$07$OQQPwgZlElJKI4u/h3WkUeCiiJ/tL1dLiGwwX7EcN2x6J2TyiAUqW';
+
   const mockUserRepository = {
-    find: jest.fn((dto) => dto),
-    findOne: jest.fn((param) => {
-      if (typeof param === 'number' && param === mockUser.id) {
-        return {
-          ...mockUser,
-          likedPosts: [],
-        };
-      }
-      if (typeof param === 'object') {
-        if (param.email === mockUser.email)
-          return {
-            ...mockUser,
-            likedPosts: [],
-          };
-      }
-      return null;
+    findOneUserByEmailAndUserName: jest.fn((email, username) => {
+      if (email === mockUser.email && username === mockUser.username) {
+        return mockUser;
+      } else return undefined;
     }),
-    save: jest.fn(() => Promise.resolve()),
+    findOneUserWithPasswordByEmail: jest.fn((email) => {
+      if (email === mockUser.email) {
+        return { ...mockUser, password: mockUserHashedPassword };
+      } else return undefined;
+    }),
+    saveNewUser: jest.fn((userToSave) => {
+      delete userToSave.password;
+      return {
+        ...userToSave,
+        ...mockNewUserDbData,
+        summary: '',
+        avatar: '',
+      };
+    }),
+    findUserById: jest.fn((id) => (id === mockUser.id ? mockUser : undefined)),
+    findOneUserByEmail: jest.fn((email) =>
+      email === mockUser.email ? mockUser : undefined,
+    ),
+    findManyUsersByUserName: jest.fn((usernames) => {
+      if (usernames[0] === mockUser.username) {
+        return [mockUser];
+      } else return [];
+    }),
+    updateCurrentUser: jest.fn((currentUser, updateUserDto) => {
+      if (updateUserDto.username && updateUserDto.username === 'existingName') {
+        throw new Error();
+      } else
+        return {
+          ...currentUser,
+          ...updateUserDto,
+        };
+    }),
   };
 
   beforeEach(async () => {
@@ -52,7 +95,7 @@ describe('UserService', () => {
       providers: [
         UserService,
         {
-          provide: getRepositoryToken(UserEntity),
+          provide: UserRepository,
           useValue: mockUserRepository,
         },
       ],
@@ -65,20 +108,81 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
+  it('should return new saved user', async () => {
+    expect(await service.registerNewUser(mockNewUser)).toEqual({
+      ...mockNewUserDbData,
+      email: mockNewUser.email,
+      username: mockNewUser.username,
+    });
+  });
+
+  it('should throw HttpException 422', async () => {
+    try {
+      expect(await service.registerNewUser(mockUser)).toEqual({
+        ...mockNewUserDbData,
+        email: mockNewUser.email,
+        username: mockNewUser.username,
+      });
+    } catch (e) {
+      expect(e.message).toBe('user exists');
+    }
+  });
+
+  it('should return existing user', async () => {
+    expect(
+      await service.login({
+        email: mockUser.email,
+        password: mockUser.password,
+      }),
+    ).toEqual({
+      username: 'Andrey',
+      email: 'andrey44@mail.vgo',
+      id: 1,
+      summary: '',
+      avatar: '',
+      createdAt: mockUser.createdAt,
+      posts: [],
+      likedPosts: [],
+      comments: [],
+    });
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(await service.login(mockNewUser)).toEqual({
+        ...mockUser,
+      });
+    } catch (e) {
+      expect(e.message).toBe(
+        `user with email: ${mockNewUser.email} is not exist`,
+      );
+    }
+  });
+
+  it('should throw HttpException 403', async () => {
+    try {
+      expect(await service.login(mockWrongPasswordUser)).toEqual({
+        ...mockUser,
+      });
+    } catch (e) {
+      expect(e.message).toBe('wrong password');
+    }
+  });
+
   it('should find and return one user', async () => {
     expect(await service.findUserById(mockUser.id)).toEqual(mockUser);
   });
 
-  it('should return null', async () => {
-    expect(await service.findUserById(23)).toEqual(null);
+  it('should return undefined', async () => {
+    expect(await service.findUserById(23)).toEqual(undefined);
   });
 
   it('should find and return user by email', async () => {
     expect(await service.findOneUserByEmail(mockUser.email)).toEqual(mockUser);
   });
 
-  it('should return null', async () => {
-    expect(await service.findOneUserByEmail('ar@mail.vgo')).toEqual(null);
+  it('should return undefined', async () => {
+    expect(await service.findOneUserByEmail('ar@mail.vgo')).toEqual(undefined);
   });
 
   it('should build and return user with access and refresh tokens', async () => {
@@ -95,5 +199,41 @@ describe('UserService', () => {
       accessToken: expect.any(String),
       refreshToken: expect.any(String),
     });
+  });
+
+  it('should return array of users', async () => {
+    expect(await service.findUsersByNames([mockUser.username])).toEqual([
+      mockUser,
+    ]);
+  });
+
+  it('should return empty array ', async () => {
+    expect(await service.findUsersByNames(['wrongName'])).toEqual([]);
+  });
+
+  it('should update and return updated user ', async () => {
+    expect(
+      await service.updateCurrentUser(mockUser, {
+        summary: 'updated summary',
+        username: 'Ivan',
+      }),
+    ).toEqual({ ...mockUser, summary: 'updated summary', username: 'Ivan' });
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(
+        await service.updateCurrentUser(mockUser, {
+          summary: 'updated summary',
+          username: 'existingName',
+        }),
+      ).toEqual({
+        ...mockUser,
+        summary: 'updated summary',
+        username: 'existingName',
+      });
+    } catch (e) {
+      expect(e.message).toBe('username should be unique');
+    }
   });
 });

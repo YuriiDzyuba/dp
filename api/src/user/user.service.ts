@@ -37,10 +37,7 @@ export class UserService {
     userToSave.password = hashedPassword;
     userToSave.username = candidate.username;
 
-    const newUser = await this.userRepository.saveNewUser(userToSave);
-
-    delete newUser.password;
-    return newUser;
+    return await this.userRepository.saveNewUser(userToSave);
   }
 
   async login(loginUserDto: LoginUserDto): Promise<UserType> {
@@ -79,15 +76,7 @@ export class UserService {
   }
 
   async findUsersByNames(usersNames: string[]): Promise<UserEntity[]> {
-    const namesToFind = usersNames.map((userName) => ({
-      username: userName,
-    }));
-
-    return await this.userRepository.findManyUsersByUserName(namesToFind);
-  }
-
-  async findAllUsersByQuery() {
-    return await this.userRepository.getAllUsers();
+    return await this.userRepository.findManyUsersByUserName(usersNames);
   }
 
   async findOneUserByEmail(email: string): Promise<UserType> {

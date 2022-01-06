@@ -21,7 +21,9 @@ export class UserRepository {
   }
 
   async saveNewUser(userToSave: UserEntity): Promise<UserEntity> {
-    return await this.users.save(userToSave);
+    const newUser = await this.users.save(userToSave);
+    delete newUser.password;
+    return newUser;
   }
 
   async findOneUserWithPasswordByEmail(userEmail: string): Promise<UserEntity> {
@@ -43,14 +45,14 @@ export class UserRepository {
     return await this.users.findOne({ email });
   }
 
-  async findManyUsersByUserName(usersName): Promise<UserEntity[]> {
-    return await this.users.find({
-      where: usersName,
-    });
-  }
+  async findManyUsersByUserName(usersNames): Promise<UserEntity[]> {
+    const namesToFind = usersNames.map((userName) => ({
+      username: userName,
+    }));
 
-  async getAllUsers(): Promise<UserEntity[]> {
-    return await this.users.find();
+    return await this.users.find({
+      where: namesToFind,
+    });
   }
 
   async updateCurrentUser(currentUser, fieldsToUpdate): Promise<UserEntity> {

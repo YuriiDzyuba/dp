@@ -32,12 +32,6 @@ export class UserController {
     private readonly fileService: FileService,
   ) {}
 
-  @Get()
-  //@UseGuards(AuthGuard)
-  findAllUsersByQuery() {
-    return this.userService.findAllUsersByQuery();
-  }
-
   @ApiOperation({ summary: 'find one user by id' })
   @ApiResponse({
     status: 200,
