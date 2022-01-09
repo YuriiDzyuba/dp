@@ -9,7 +9,6 @@ import {
   Body,
   UseGuards,
   Req,
-  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
@@ -18,8 +17,12 @@ import { LoginUserDto } from '../user/dto/loginUser.dto';
 import { RefreshTokensGuard } from './guards/refreshTokens.guard';
 import { ExpressRequestInterface } from '../types/expressRequest.interface';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UserEntity } from '../user/entities/user.entity';
-import { EmailService } from '../email/email.service';
+import {
+  genNewTokenPair,
+  getGoogleAuthURL,
+  googleAuthRedirect,
+  loginUser,
+} from './consts/swagger.consts';
 
 @ApiTags('auth module')
 @Controller('auth')
@@ -27,15 +30,10 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
-    private readonly emailService: EmailService,
   ) {}
 
-  @ApiOperation({ summary: 'login user by email and password' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'user with access and refresh tokens',
-    type: UserEntity,
-  })
+  @ApiOperation(loginUser.apiOperation)
+  @ApiResponse(loginUser.apiResponse)
   @Post('login')
   @UsePipes(new ValidationPipe())
   async loginUser(
@@ -45,52 +43,27 @@ export class AuthController {
     return this.userService.buildUserResponse(user);
   }
 
-  @ApiOperation({ summary: 'get new tokens' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'refresh access and refresh tokens',
-  })
+  @ApiOperation(genNewTokenPair.apiOperation)
+  @ApiResponse(genNewTokenPair.apiResponse)
   @Get('refresh_token')
   @UseGuards(RefreshTokensGuard)
   genNewTokenPair(@Req() request: ExpressRequestInterface) {
     return this.userService.buildUserResponse(request.userToRefreshTokens);
   }
 
-  @ApiOperation({ summary: 'redirect here users from GCP' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description:
-      'registered new or authorized user with access and refresh tokens',
-  })
+  @ApiOperation(googleAuthRedirect.apiOperation)
+  @ApiResponse(googleAuthRedirect.apiResponse)
   @Get('google_redirect')
   async googleAuthRedirect(
     @Query('code')
     code: string,
   ) {
-    const googleUser = await this.authService.getGoogleUser(code);
-
-    const foundedUser = await this.userService.findOneUserByEmail(
-      googleUser.email,
-    );
-
-    if (!foundedUser) {
-      const newApplicant = this.authService.normalizeGoogleUser(googleUser);
-
-      const newUser = await this.userService.registerNewUser(newApplicant);
-
-      this.emailService.sendMailToNewUser(newUser, newApplicant.password);
-      return this.userService.buildUserResponse(newUser);
-    }
-
-    return this.userService.buildUserResponse(foundedUser);
+    const checkedUser = await this.authService.checkGoogleUser(code);
+    return this.userService.buildUserResponse(checkedUser);
   }
 
-  @ApiOperation({ summary: 'redirect from here to GCP' })
-  @ApiResponse({
-    status: HttpStatus.MOVED_PERMANENTLY,
-    description:
-      'after login in google account user will be redirected to auth/google_redirect',
-  })
+  @ApiOperation(getGoogleAuthURL.apiOperation)
+  @ApiResponse(getGoogleAuthURL.apiResponse)
   @Get('google')
   @Redirect('https://accounts.google.com/', 302)
   getGoogleAuthURL() {
