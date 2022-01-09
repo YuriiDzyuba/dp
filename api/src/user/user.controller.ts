@@ -10,8 +10,6 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -22,15 +20,11 @@ import { User } from './decorators/user.decorator';
 import { UserEntity } from './entities/user.entity';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileService } from '../file/file.service';
 
 @ApiTags('user module')
 @Controller('user')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly fileService: FileService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @ApiOperation({ summary: 'find one user by id' })
   @ApiResponse({
@@ -73,27 +67,10 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() avatar: Express.Multer.File,
   ): Promise<UserResponseInterface> {
-    if (avatar) {
-      const verifiedImage = await this.fileService.prepareImage(avatar);
-
-      const { Location } = await this.fileService.uploadNewImageToAWSs3(
-        verifiedImage,
-        'avatar',
-      );
-
-      if (!Location) {
-        throw new HttpException(
-          'image size must be less than 3MB',
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      }
-
-      updateUserDto.avatar = Location;
-    }
-
     const updatedUser = await this.userService.updateCurrentUser(
       currentUser,
       updateUserDto,
+      avatar,
     );
     return this.userService.buildUserResponse(updatedUser);
   }

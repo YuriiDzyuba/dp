@@ -8,10 +8,14 @@ import { LoginUserDto } from './dto/loginUser.dto';
 import { UserResponseInterface } from './types/userResponse.interface';
 import { sign } from 'jsonwebtoken';
 import { UserRepository } from './user.repository';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly fileService: FileService,
+  ) {}
 
   async registerNewUser(candidate: CreateUserDto): Promise<UserType> {
     const existingUser =
@@ -84,6 +88,41 @@ export class UserService {
   }
 
   async updateCurrentUser(
+    currentUser: UserEntity,
+    updateUserDto: UpdateUserDto,
+    avatar,
+  ): Promise<UserEntity> {
+    try {
+      if (avatar) {
+        const verifiedImage = await this.fileService.prepareImage(avatar);
+
+        const { Location } = await this.fileService.uploadNewImageToAWSs3(
+          verifiedImage,
+          'avatar',
+        );
+
+        if (!Location) {
+          throw new HttpException(
+            'image size must be less than 3MB',
+            HttpStatus.SERVICE_UNAVAILABLE,
+          );
+        }
+
+        updateUserDto.avatar = Location;
+      }
+      return await this.userRepository.updateCurrentUser(
+        currentUser,
+        updateUserDto,
+      );
+    } catch (err) {
+      throw new HttpException(
+        { message: `username should be unique` },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async updateUser(
     currentUser: UserEntity,
     updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
