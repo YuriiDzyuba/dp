@@ -26,6 +26,10 @@ export class UserRepository {
     return newUser;
   }
 
+  async saveUser(userToSave: UserEntity): Promise<void> {
+    await this.users.save(userToSave);
+  }
+
   async findOneUserWithPasswordByEmail(userEmail: string): Promise<UserEntity> {
     return await this.users.findOne(
       {
@@ -33,6 +37,17 @@ export class UserRepository {
       },
       {
         select: ['id', 'username', 'email', 'summary', 'avatar', 'password'],
+      },
+    );
+  }
+
+  async findOneUserWithLikedPosts(userId: number): Promise<UserEntity> {
+    return await this.users.findOne(
+      {
+        id: userId,
+      },
+      {
+        relations: ['likedPosts'],
       },
     );
   }

@@ -33,4 +33,10 @@ export class ProfileRepository {
     delete profile.email;
     return profile;
   }
+
+  async findFollowingUsers(followerId: number): Promise<FollowEntity[]> {
+    return await this.follow.find({
+      followerId: followerId,
+    });
+  }
 }

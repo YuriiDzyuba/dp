@@ -18,8 +18,6 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { User } from '../user/decorators/user.decorator';
 import { CommentEntity } from './entities/comment.entity';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UserService } from 'src/user/user.service';
-import { EmailService } from '../email/email.service';
 import {
   addNewComment,
   deleteComment,
@@ -30,11 +28,7 @@ import {
 @ApiTags('comment module')
 @Controller('comment')
 export class CommentController {
-  constructor(
-    private readonly commentService: CommentService,
-    private readonly userService: UserService,
-    private readonly emailService: EmailService,
-  ) {}
+  constructor(private readonly commentService: CommentService) {}
 
   @ApiOperation(addNewComment.apiResponse)
   @ApiResponse(addNewComment.apiResponse)
@@ -46,23 +40,11 @@ export class CommentController {
     @Query('post_id') postToCommentId: string,
     @Body() createCommentDto: CreateCommentDto,
   ): Promise<CommentEntity> {
-    const newComment = await this.commentService.addNewComment(
+    return this.commentService.addNewComment(
       currentUserId,
       postToCommentId,
       createCommentDto,
     );
-
-    if (!newComment.relatedUsers.length) {
-      return newComment;
-    }
-
-    const getAllRelatedUsers = await this.userService.findUsersByNames(
-      newComment.relatedUsers,
-    );
-
-    this.emailService.sendEmailToRelatedUsers(getAllRelatedUsers, newComment);
-
-    return newComment;
   }
 
   @ApiOperation(editComment.apiOperation)

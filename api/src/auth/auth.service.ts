@@ -4,9 +4,17 @@ import axios from 'axios';
 import { createUniqueString } from '../utils/createUniqueString';
 import { GoogleUserType } from './type/GoogleUser.type';
 import { NormalizedGoogleUserType } from './type/normalizedGoogleUser.type';
+import { UserService } from '../user/user.service';
+import { EmailService } from '../email/email.service';
+import { UserType } from 'src/user/types/user.type';
 
 @Injectable()
 export class AuthService {
+  constructor(
+    private readonly userService: UserService,
+    private readonly emailService: EmailService,
+  ) {}
+
   getLinkToGoogleAccount() {
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = {
@@ -22,6 +30,27 @@ export class AuthService {
     };
 
     return `${rootUrl}?${querystring.stringify(options)}`;
+  }
+
+  async checkGoogleUser(code: string): Promise<UserType> {
+    const googleUser = await this.getGoogleUser(code);
+
+    const foundedUser = await this.userService.findOneUserByEmail(
+      googleUser.email,
+    );
+
+    if (foundedUser) {
+      return foundedUser;
+    }
+
+    if (!foundedUser) {
+      const newApplicant = this.normalizeGoogleUser(googleUser);
+
+      const newUser = await this.userService.registerNewUser(newApplicant);
+
+      this.emailService.sendMailToNewUser(newUser, newApplicant.password);
+      return newUser;
+    }
   }
 
   async getGoogleUser(code: string): Promise<GoogleUserType> {

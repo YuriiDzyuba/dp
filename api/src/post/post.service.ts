@@ -1,21 +1,19 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserEntity } from '../user/entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { getRepository, Repository } from 'typeorm';
+import { getRepository } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
-import { FollowEntity } from '../profile/entities/follow.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { ProfileRepository } from '../profile/profile.repository';
+import { UserRepository } from '../user/user.repository';
+import { PostRepository } from './post.repository';
 
 @Injectable()
 export class PostService {
   constructor(
-    @InjectRepository(PostEntity)
-    private readonly postRepository: Repository<PostEntity>,
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(FollowEntity)
-    private readonly followRepository: Repository<FollowEntity>,
+    private readonly postRepository: PostRepository,
+    private readonly userRepository: UserRepository,
+    private readonly profileRepository: ProfileRepository,
   ) {}
 
   async createPost(
@@ -31,7 +29,7 @@ export class PostService {
 
     post.author = currentUser;
 
-    return await this.postRepository.save(post);
+    return await this.postRepository.savePost(post);
   }
 
   async editPostById(
@@ -55,16 +53,16 @@ export class PostService {
 
     Object.assign(postToUpdate, updatePostDto);
 
-    return await this.postRepository.save(postToUpdate);
+    return await this.postRepository.savePost(postToUpdate);
   }
 
   async getUserNewsPage(
     pageOwnerUserId: number,
     query: any,
   ): Promise<PostEntity[]> {
-    const followingUsers = await this.followRepository.find({
-      followerId: pageOwnerUserId,
-    });
+    const followingUsers = await this.profileRepository.findFollowingUsers(
+      pageOwnerUserId,
+    );
 
     if (!followingUsers.length) {
       return [];
@@ -103,9 +101,9 @@ export class PostService {
   }
 
   async deletePost(currentUserId: number, postToDeleteId: string) {
-    const postToDelete = await this.postRepository.findOne(+postToDeleteId, {
-      loadRelationIds: true,
-    });
+    const postToDelete = await this.postRepository.findOnePostWithAuthorId(
+      +postToDeleteId,
+    );
 
     if (!postToDelete) {
       throw new HttpException("can't find post", HttpStatus.FORBIDDEN);
@@ -115,7 +113,7 @@ export class PostService {
       throw new HttpException('access denied ', HttpStatus.FORBIDDEN);
     }
 
-    return await this.postRepository.delete({ id: +postToDeleteId });
+    return await this.postRepository.deleteOnePost(+postToDeleteId);
   }
 
   async likePost(currentUserId: number, postToLikeId: string) {
@@ -125,9 +123,9 @@ export class PostService {
       throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
     }
 
-    const user = await this.userRepository.findOne(currentUserId, {
-      relations: ['likedPosts'],
-    });
+    const user = await this.userRepository.findOneUserWithLikedPosts(
+      currentUserId,
+    );
 
     const postIndex = user.likedPosts.findIndex(
       (postInLikedPosts) => postInLikedPosts.id === postToLike.id,
@@ -136,8 +134,8 @@ export class PostService {
     if (postIndex === -1) {
       user.likedPosts.push(postToLike);
       postToLike.favoriteCount++;
-      await this.userRepository.save(user);
-      await this.postRepository.save(postToLike);
+      await this.userRepository.saveUser(user);
+      await this.postRepository.savePost(postToLike);
     }
 
     return postToLike;
@@ -150,9 +148,9 @@ export class PostService {
       throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
     }
 
-    const user = await this.userRepository.findOne(currentUserId, {
-      relations: ['likedPosts'],
-    });
+    const user = await this.userRepository.findOneUserWithLikedPosts(
+      currentUserId,
+    );
 
     const postIndex = user.likedPosts.findIndex(
       (postInLikedPosts) => postInLikedPosts.id === postToDislike.id,
@@ -161,15 +159,15 @@ export class PostService {
     if (postIndex >= 0) {
       user.likedPosts.splice(postIndex, 1);
       postToDislike.favoriteCount--;
-      await this.userRepository.save(user);
-      await this.postRepository.save(postToDislike);
+      await this.userRepository.saveUser(user);
+      await this.postRepository.savePost(postToDislike);
     }
 
     return postToDislike;
   }
 
   async findPostById(id: number) {
-    const postById = await this.postRepository.findOne(id);
+    const postById = await this.postRepository.findOnePost(id);
 
     if (!postById) {
       throw new HttpException("post doesn't exist", HttpStatus.NOT_FOUND);
