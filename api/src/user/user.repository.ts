@@ -45,6 +45,19 @@ export class UserRepository {
     return await this.users.findOne({ email });
   }
 
+  async findOneUserByName(username: string): Promise<UserEntity> {
+    return await this.users.findOne({ username });
+  }
+
+  async findOneUserByNameWithPosts(username: string): Promise<UserEntity> {
+    return await this.users.findOne(
+      {
+        username: username,
+      },
+      { relations: ['posts'] },
+    );
+  }
+
   async findManyUsersByUserName(usersNames): Promise<UserEntity[]> {
     const namesToFind = usersNames.map((userName) => ({
       username: userName,

@@ -1,49 +1,41 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ProfileType } from './types/profile.type';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { FollowEntity } from './entities/follow.entity';
-import { UserEntity } from '../user/entities/user.entity';
+import { UserService } from 'src/user/user.service';
+import { ProfileRepository } from './profile.repository';
 
 @Injectable()
 export class ProfileService {
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(FollowEntity)
-    private readonly followRepository: Repository<FollowEntity>,
+    private readonly userService: UserService,
+    private readonly followRepository: ProfileRepository,
   ) {}
 
   async findOneProfile(
     currentUserId: number,
     profileUserName: string,
   ): Promise<ProfileType> {
-    const user = await this.userRepository.findOne(
-      {
-        username: profileUserName,
-      },
-      { relations: ['posts'] },
+    const user = await this.userService.findOneUserByNameWithPosts(
+      profileUserName,
     );
 
     if (!user) {
       throw new HttpException('profile does not exist', HttpStatus.NOT_FOUND);
     }
 
-    const follow = await this.followRepository.findOne({
-      followerId: currentUserId,
-      followingId: user.id,
-    });
+    const followedProfile = await this.followRepository.findOneFollowedProfile(
+      currentUserId,
+      user.id,
+    );
 
-    return { ...user, following: !!follow };
+    return { ...user, following: !!followedProfile };
   }
 
   async followProfile(
     currentUserId: number,
     profileUserName: string,
   ): Promise<ProfileType> {
-    const user = await this.userRepository.findOne({
-      username: profileUserName,
-    });
+    const user = await this.userService.findOneUserByName(profileUserName);
 
     if (!user) {
       throw new HttpException('profile does not exist', HttpStatus.NOT_FOUND);
@@ -56,16 +48,16 @@ export class ProfileService {
       );
     }
 
-    const follow = await this.followRepository.findOne({
-      followerId: currentUserId,
-      followingId: user.id,
-    });
+    const follow = await this.followRepository.findOneFollowedProfile(
+      currentUserId,
+      user.id,
+    );
 
     if (!follow) {
       const followToCreate = new FollowEntity();
       followToCreate.followerId = currentUserId;
       followToCreate.followingId = user.id;
-      await this.followRepository.save(followToCreate);
+      await this.followRepository.followProfile(followToCreate);
     }
 
     return { ...user, following: true };
@@ -75,9 +67,7 @@ export class ProfileService {
     currentUserId: number,
     profileUserName: string,
   ): Promise<ProfileType> {
-    const user = await this.userRepository.findOne({
-      username: profileUserName,
-    });
+    const user = await this.userService.findOneUserByName(profileUserName);
 
     if (!user) {
       throw new HttpException('profile does not exist', HttpStatus.NOT_FOUND);
@@ -90,11 +80,7 @@ export class ProfileService {
       );
     }
 
-    await this.followRepository.delete({
-      followerId: currentUserId,
-      followingId: user.id,
-    });
-
+    await this.followRepository.unFollowProfile(currentUserId, user.id);
     return { ...user, following: false };
   }
 

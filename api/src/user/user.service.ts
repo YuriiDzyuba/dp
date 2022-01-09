@@ -87,6 +87,14 @@ export class UserService {
     return await this.userRepository.findOneUserByEmail(email);
   }
 
+  async findOneUserByName(username: string): Promise<UserType> {
+    return await this.userRepository.findOneUserByName(username);
+  }
+
+  async findOneUserByNameWithPosts(username: string): Promise<UserType> {
+    return await this.userRepository.findOneUserByNameWithPosts(username);
+  }
+
   async updateCurrentUser(
     currentUser: UserEntity,
     updateUserDto: UpdateUserDto,
