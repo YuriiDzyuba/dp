@@ -20,6 +20,12 @@ import { CommentEntity } from './entities/comment.entity';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserService } from 'src/user/user.service';
 import { EmailService } from '../email/email.service';
+import {
+  addNewComment,
+  deleteComment,
+  editComment,
+  findAllUserComments,
+} from './consts/comment.swagger.consts';
 
 @ApiTags('comment module')
 @Controller('comment')
@@ -30,12 +36,8 @@ export class CommentController {
     private readonly emailService: EmailService,
   ) {}
 
-  @ApiOperation({ summary: 'add New Comment' })
-  @ApiResponse({
-    status: 201,
-    description: 'add new comment to chosen in query post',
-    type: CommentEntity,
-  })
+  @ApiOperation(addNewComment.apiResponse)
+  @ApiResponse(addNewComment.apiResponse)
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   @UseGuards(AuthGuard)
@@ -63,12 +65,8 @@ export class CommentController {
     return newComment;
   }
 
-  @ApiOperation({ summary: 'edit coment' })
-  @ApiResponse({
-    status: 200,
-    description: 'edit existing comment ',
-    type: CommentEntity,
-  })
+  @ApiOperation(editComment.apiOperation)
+  @ApiResponse(editComment.apiResponse)
   @Patch(':comment_id')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   @UseGuards(AuthGuard)
@@ -84,11 +82,8 @@ export class CommentController {
     );
   }
 
-  @ApiOperation({ summary: 'delete comment by id' })
-  @ApiResponse({
-    status: 206,
-    description: 'only owner can delete comment',
-  })
+  @ApiOperation(deleteComment.apiOperation)
+  @ApiResponse(deleteComment.apiResponse)
   @Delete(':comment_id')
   @UseGuards(AuthGuard)
   deleteComment(
@@ -98,11 +93,8 @@ export class CommentController {
     return this.commentService.deleteComment(commentId, currentUserId);
   }
 
-  @ApiOperation({ summary: 'get all current user comments' })
-  @ApiResponse({
-    status: 206,
-    description: "array off user's comments",
-  })
+  @ApiOperation(findAllUserComments.apiOperation)
+  @ApiResponse(findAllUserComments.apiResponse)
   @Get()
   @UseGuards(AuthGuard)
   findAllUserComments(

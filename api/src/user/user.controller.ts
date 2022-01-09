@@ -24,7 +24,7 @@ import {
   findUserById,
   registerNewUser,
   updateCurrentUser,
-} from './consts/user.consts';
+} from './consts/user.swagger.consts';
 
 @ApiTags('user module')
 @Controller('user')

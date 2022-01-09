@@ -22,7 +22,7 @@ import {
   getGoogleAuthURL,
   googleAuthRedirect,
   loginUser,
-} from './consts/swagger.consts';
+} from './consts/auth.swagger.consts';
 
 @ApiTags('auth module')
 @Controller('auth')

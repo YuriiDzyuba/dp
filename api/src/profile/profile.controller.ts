@@ -11,17 +11,19 @@ import { User } from '../user/decorators/user.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { ProfileType } from './types/profile.type';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  findOneProfile,
+  followProfile,
+  unFollowProfile,
+} from './consts/profile.swagger.consts';
 
 @ApiTags('profile module')
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @ApiOperation({ summary: 'find one user profile by user id (public route)' })
-  @ApiResponse({
-    status: 200,
-    description: 'founded user profile',
-  })
+  @ApiOperation(findOneProfile.apiOperation)
+  @ApiResponse(findOneProfile.apiResponse)
   @Get(':username')
   async findOneProfile(
     @User('id') currentUserId: number,
@@ -34,10 +36,8 @@ export class ProfileController {
     return this.profileService.buildProfileResponse(profile);
   }
 
-  @ApiOperation({ summary: 'subscribe to user profile' })
-  @ApiResponse({
-    status: 200,
-  })
+  @ApiOperation(followProfile.apiOperation)
+  @ApiResponse(followProfile.apiResponse)
   @Post('follow/:username')
   @UseGuards(AuthGuard)
   async followProfile(
@@ -51,7 +51,7 @@ export class ProfileController {
     return this.profileService.buildProfileResponse(profile);
   }
 
-  @ApiOperation({ summary: 'unsubscribe from user profile' })
+  @ApiOperation(unFollowProfile.apiOperation)
   @Delete('follow/:username')
   @UseGuards(AuthGuard)
   async unFollowProfile(
