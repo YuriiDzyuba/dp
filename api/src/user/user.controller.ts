@@ -20,29 +20,26 @@ import { User } from './decorators/user.decorator';
 import { UserEntity } from './entities/user.entity';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  findUserById,
+  registerNewUser,
+  updateCurrentUser,
+} from './consts/user.consts';
 
 @ApiTags('user module')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @ApiOperation({ summary: 'find one user by id' })
-  @ApiResponse({
-    status: 200,
-    description: 'founded user',
-    type: UserEntity,
-  })
+  @ApiOperation(findUserById.apiOperation)
+  @ApiResponse(findUserById.apiResponse)
   @Get(':id')
   findUserById(@Param('id') id: string) {
     return this.userService.findUserById(+id);
   }
 
-  @ApiOperation({ summary: 'create new user by email and password' })
-  @ApiResponse({
-    status: 201,
-    description: 'created new user',
-    type: UserEntity,
-  })
+  @ApiOperation(registerNewUser.apiOperation)
+  @ApiResponse(registerNewUser.apiResponse)
   @Post('registration')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async registerNewUser(
@@ -52,12 +49,8 @@ export class UserController {
     return this.userService.buildUserResponse(newUser);
   }
 
-  @ApiOperation({ summary: 'update current user ' })
-  @ApiResponse({
-    status: 200,
-    description: 'updated user',
-    type: UserEntity,
-  })
+  @ApiOperation(updateCurrentUser.apiOperation)
+  @ApiResponse(updateCurrentUser.apiResponse)
   @Patch()
   @UseInterceptors(FileInterceptor('avatar'))
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
