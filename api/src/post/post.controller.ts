@@ -11,8 +11,6 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
-  HttpException,
-  HttpStatus,
   Patch,
 } from '@nestjs/common';
 import { PostService } from './post.service';
@@ -23,22 +21,25 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { PostEntity } from './entities/post.entity';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileService } from '../file/file.service';
 import { UpdatePostDto } from './dto/update-post.dto';
+import {
+  createPost,
+  deletePost,
+  disLikePost,
+  editPostById,
+  findManyPostsByTag,
+  findOnePostsById,
+  getUserNewsPage,
+  likePost,
+} from './consts/post.swagger.consts';
 
 @ApiTags('posts module')
 @Controller('post')
 export class PostController {
-  constructor(
-    private readonly postService: PostService,
-    private readonly fileService: FileService,
-  ) {}
+  constructor(private readonly postService: PostService) {}
 
-  @ApiOperation({ summary: 'create new post' })
-  @ApiResponse({
-    status: 201,
-    type: PostEntity,
-  })
+  @ApiOperation(createPost.apiOperation)
+  @ApiResponse(createPost.apiResponse)
   @Post()
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
@@ -48,38 +49,11 @@ export class PostController {
     @Body() createPostDto: CreatePostDto,
     @UploadedFile() image: Express.Multer.File,
   ): Promise<PostEntity> {
-    const verifiedImage = await this.fileService.prepareImage(
-      image,
-      createPostDto.imageFilter,
-    );
-
-    const { Location } = await this.fileService.uploadNewImageToAWSs3(
-      verifiedImage,
-      'posts',
-    );
-
-    if (!Location) {
-      throw new HttpException(
-        'image size must be less than 3MB',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    createPostDto.image = Location;
-
-    const newPost = await this.postService.createPost(
-      currentUser,
-      createPostDto,
-    );
-
-    return newPost;
+    return this.postService.creteNewPost(currentUser, createPostDto, image);
   }
 
-  @ApiOperation({ summary: 'update post' })
-  @ApiResponse({
-    status: 200,
-    type: PostEntity,
-  })
+  @ApiOperation(editPostById.apiOperation)
+  @ApiResponse(editPostById.apiResponse)
   @Patch('/:post_id')
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
@@ -90,41 +64,16 @@ export class PostController {
     @Body() updatePostDto: UpdatePostDto,
     @UploadedFile() image: Express.Multer.File,
   ): Promise<PostEntity> {
-    if (image) {
-      const verifiedImage = await this.fileService.prepareImage(
-        image,
-        updatePostDto.imageFilter,
-      );
-
-      const { Location } = await this.fileService.uploadNewImageToAWSs3(
-        verifiedImage,
-        'posts',
-      );
-
-      if (!Location) {
-        throw new HttpException(
-          'image size must be less than 3MB',
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      }
-
-      updatePostDto.image = Location;
-    }
-
-    const updatedPost = await this.postService.editPostById(
+    return this.postService.editPost(
+      postToUpdateId,
       currentUserId,
       updatePostDto,
-      postToUpdateId,
+      image,
     );
-
-    return updatedPost;
   }
 
-  @ApiOperation({ summary: 'get all own and following user posts' })
-  @ApiResponse({
-    status: 200,
-    type: [PostEntity],
-  })
+  @ApiOperation(getUserNewsPage.apiOperation)
+  @ApiResponse(editPostById.apiResponse)
   @Get('/user/:user_id')
   @UseGuards(AuthGuard)
   async getUserNewsPage(
@@ -134,32 +83,24 @@ export class PostController {
     return await this.postService.getUserNewsPage(currentUserId, query);
   }
 
-  @ApiOperation({ summary: 'find all posts by tag' })
-  @ApiResponse({
-    status: 200,
-    type: [PostEntity],
-  })
+  @ApiOperation(findManyPostsByTag.apiOperation)
+  @ApiResponse(findManyPostsByTag.apiResponse)
   @Get(':tag')
   @UseGuards(AuthGuard)
   findManyPostsByTag(@Param('tag') tag: string) {
     return this.postService.findManyPostsByTag(tag);
   }
 
-  @ApiOperation({ summary: 'find one post by id' })
-  @ApiResponse({
-    status: 200,
-    type: [PostEntity],
-  })
+  @ApiOperation(findOnePostsById.apiOperation)
+  @ApiResponse(findOnePostsById.apiResponse)
   @Get(':id')
   @UseGuards(AuthGuard)
   findOnePostsById(@Param('id') id: number) {
     return this.postService.findPostById(id);
   }
 
-  @ApiOperation({ summary: 'find by id and delete post' })
-  @ApiResponse({
-    status: 206,
-  })
+  @ApiOperation(deletePost.apiOperation)
+  @ApiResponse(deletePost.apiResponse)
   @Delete(':post_id')
   @UseGuards(AuthGuard)
   async deletePost(
@@ -169,11 +110,8 @@ export class PostController {
     return this.postService.deletePost(currentUserId, postToDeleteId);
   }
 
-  @ApiOperation({ summary: 'like post' })
-  @ApiResponse({
-    status: 206,
-    type: [PostEntity],
-  })
+  @ApiOperation(likePost.apiOperation)
+  @ApiResponse(likePost.apiResponse)
   @Post('like/:post_id')
   @UseGuards(AuthGuard)
   likePost(
@@ -183,10 +121,8 @@ export class PostController {
     return this.postService.likePost(currentUserId, postToLikeId);
   }
 
-  @ApiOperation({ summary: 'dislike post' })
-  @ApiResponse({
-    status: 206,
-  })
+  @ApiOperation(disLikePost.apiOperation)
+  @ApiResponse(disLikePost.apiResponse)
   @Delete('like/:post_id')
   @UseGuards(AuthGuard)
   disLikePost(

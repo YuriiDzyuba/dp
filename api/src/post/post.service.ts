@@ -1,12 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UserEntity } from '../user/entities/user.entity';
-import { getRepository } from 'typeorm';
 import { PostEntity } from './entities/post.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { ProfileRepository } from '../profile/profile.repository';
 import { UserRepository } from '../user/user.repository';
 import { PostRepository } from './post.repository';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class PostService {
@@ -14,7 +14,35 @@ export class PostService {
     private readonly postRepository: PostRepository,
     private readonly userRepository: UserRepository,
     private readonly profileRepository: ProfileRepository,
+    private readonly fileService: FileService,
   ) {}
+
+  async creteNewPost(
+    currentUser: UserEntity,
+    createPostDto: CreatePostDto,
+    image,
+  ): Promise<PostEntity> {
+    const verifiedImage = await this.fileService.prepareImage(
+      image,
+      createPostDto.imageFilter,
+    );
+
+    const { Location } = await this.fileService.uploadNewImageToAWSs3(
+      verifiedImage,
+      'posts',
+    );
+
+    if (!Location) {
+      throw new HttpException(
+        'image size must be less than 3MB',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    createPostDto.image = Location;
+
+    return await this.createPost(currentUser, createPostDto);
+  }
 
   async createPost(
     currentUser: UserEntity,
@@ -32,17 +60,51 @@ export class PostService {
     return await this.postRepository.savePost(post);
   }
 
+  async editPost(
+    postToUpdateId: number,
+    currentUserId: number,
+    updatePostDto: UpdatePostDto,
+    image,
+  ): Promise<PostEntity> {
+    if (image) {
+      const verifiedImage = await this.fileService.prepareImage(
+        image,
+        updatePostDto.imageFilter,
+      );
+
+      const { Location } = await this.fileService.uploadNewImageToAWSs3(
+        verifiedImage,
+        'posts',
+      );
+
+      if (!Location) {
+        throw new HttpException(
+          'image size must be less than 3MB',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
+      updatePostDto.image = Location;
+    }
+
+    const updatedPost = await this.editPostById(
+      currentUserId,
+      updatePostDto,
+      postToUpdateId,
+    );
+
+    return updatedPost;
+  }
+
   async editPostById(
     currentUserId: number,
     updatePostDto: UpdatePostDto,
     postToUpdateId: number,
   ): Promise<PostEntity> {
-    const postToUpdate = await getRepository(PostEntity)
-      .createQueryBuilder('post')
-      .leftJoinAndSelect('post.author', 'author')
-      .where('author.id = :id', { id: currentUserId })
-      .andWhere('post.id = :post_id', { post_id: +postToUpdateId })
-      .getOne();
+    const postToUpdate = await this.postRepository.getOnePostToUpdate(
+      currentUserId,
+      +postToUpdateId,
+    );
 
     if (!postToUpdate) {
       throw new HttpException(
@@ -71,33 +133,11 @@ export class PostService {
     const followingUserIds = followingUsers.map((follow) => follow.followingId);
     followingUserIds.push(+pageOwnerUserId);
 
-    const queryBuilder = getRepository(PostEntity)
-      .createQueryBuilder('post')
-      .leftJoinAndSelect('post.author', 'author')
-      .where('post.authorId IN (:...ids)', { ids: followingUserIds })
-      .orderBy('post.createdAt', 'DESC');
-
-    if (query.limit) {
-      queryBuilder.limit(query.limit);
-    }
-
-    if (query.offset) {
-      queryBuilder.offset(query.offset);
-    }
-
-    return await queryBuilder.getMany();
+    return await this.profileRepository.getNewsPage(query, followingUserIds);
   }
 
   async findManyPostsByTag(tag: string) {
-    const queryBuilder = getRepository(PostEntity)
-      .createQueryBuilder('posts')
-      .where('posts.tagList LIKE :tag', {
-        tag: `%${tag}%`,
-      });
-
-    const posts = await queryBuilder.getMany();
-
-    return posts;
+    return await this.postRepository.findManyPostsByTag(tag);
   }
 
   async deletePost(currentUserId: number, postToDeleteId: string) {
