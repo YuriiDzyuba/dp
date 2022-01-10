@@ -4,6 +4,7 @@ import { UserEntity } from './entities/user.entity';
 import { UserRepository } from './user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { createUniqueString } from '../utils/createUniqueString';
+import { FileService } from '../file/file.service';
 
 describe('UserService', () => {
   test('will receive process.env variables', () => {
@@ -50,6 +51,10 @@ describe('UserService', () => {
   const mockUserHashedPassword =
     '$2b$07$OQQPwgZlElJKI4u/h3WkUeCiiJ/tL1dLiGwwX7EcN2x6J2TyiAUqW';
 
+  const mockAvatar = 'some binary file';
+
+  const avatarLocation = `https://location/s3/`;
+
   const mockUserRepository = {
     findOneUserByEmailAndUserName: jest.fn((email, username) => {
       if (email === mockUser.email && username === mockUser.username) {
@@ -90,13 +95,25 @@ describe('UserService', () => {
     }),
   };
 
-  beforeEach(async () => {
+  const mockFileService = {
+    prepareImage: jest.fn((avatar) => avatar),
+    uploadNewImageToAWSs3: jest.fn((verifiedImage, type) => ({
+      verifiedImage,
+      Location: avatarLocation + type,
+    })),
+  };
+
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
           provide: UserRepository,
           useValue: mockUserRepository,
+        },
+        {
+          provide: FileService,
+          useValue: mockFileService,
         },
       ],
     }).compile();
@@ -213,24 +230,38 @@ describe('UserService', () => {
 
   it('should update and return updated user ', async () => {
     expect(
-      await service.updateCurrentUser(mockUser, {
-        summary: 'updated summary',
-        username: 'Ivan',
-      }),
-    ).toEqual({ ...mockUser, summary: 'updated summary', username: 'Ivan' });
+      await service.updateCurrentUser(
+        mockUser,
+        {
+          summary: 'updated summary',
+          username: 'Ivan',
+        },
+        mockAvatar,
+      ),
+    ).toEqual({
+      ...mockUser,
+      summary: 'updated summary',
+      username: 'Ivan',
+      avatar: avatarLocation + 'avatar',
+    });
   });
 
   it('should throw HttpException 400', async () => {
     try {
       expect(
-        await service.updateCurrentUser(mockUser, {
-          summary: 'updated summary',
-          username: 'existingName',
-        }),
+        await service.updateCurrentUser(
+          mockUser,
+          {
+            summary: 'updated summary',
+            username: 'existingName',
+          },
+          'some avatar',
+        ),
       ).toEqual({
         ...mockUser,
         summary: 'updated summary',
         username: 'existingName',
+        avatar: mockAvatar,
       });
     } catch (e) {
       expect(e.message).toBe('username should be unique');
