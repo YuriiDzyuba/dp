@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PostEntity } from './entities/post.entity';
 import { getRepository, Repository } from 'typeorm';
-import { FollowEntity } from '../profile/entities/follow.entity';
 
 @Injectable()
 export class PostRepository {
@@ -44,6 +43,24 @@ export class PostRepository {
       .where('posts.tagList LIKE :tag', {
         tag: `%${tag}%`,
       });
+
+    return await queryBuilder.getMany();
+  }
+
+  async getNewsPage(query, followingUserIds): Promise<PostEntity[]> {
+    const queryBuilder = getRepository(PostEntity)
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('post.authorId IN (:...ids)', { ids: followingUserIds })
+      .orderBy('post.createdAt', 'DESC');
+
+    if (query.limit) {
+      queryBuilder.limit(query.limit);
+    }
+
+    if (query.offset) {
+      queryBuilder.offset(query.offset);
+    }
 
     return await queryBuilder.getMany();
   }

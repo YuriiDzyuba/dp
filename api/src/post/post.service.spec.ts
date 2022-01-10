@@ -1,13 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostService } from './post.service';
-import { PostEntity } from './entities/post.entity';
 import { UserEntity } from '../user/entities/user.entity';
-import { FollowEntity } from '../profile/entities/follow.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { CreatePostDto } from './dto/create-post.dto';
+import { PostRepository } from './post.repository';
+import { FileService } from '../file/file.service';
+import { UserService } from '../user/user.service';
+import { ProfileService } from '../profile/profile.service';
+import { UpdatePostDto } from './dto/update-post.dto';
+import e from 'express';
 
 describe('PostService', () => {
   let service: PostService;
+
+  const mockAuthor = {
+    username: 'Andrey',
+    email: 'andrey44@mail.vgo',
+    id: 1,
+    summary: '',
+    avatar: '',
+    createdAt: new Date(),
+  };
+
+  const mockUser: UserEntity = {
+    ...mockAuthor,
+    password: 'qwerty',
+    posts: [],
+    likedPosts: [],
+    comments: [],
+  };
 
   const mockNewPost: CreatePostDto = {
     title: 'It was popul 1960s ',
@@ -18,69 +38,101 @@ describe('PostService', () => {
     image: '',
   };
 
-  const mockFoundedPost = {
-    title: 'It was popul 1960s ',
-    description: 'survived not ce',
-    body: 'survived not only five ce, remaining etraset shesages, with',
-    tagList: ['release', 'five', 'into'],
-    imageFilter: 'multi',
-    image: '',
-    author: 1,
+  const mockUpdatedPost: UpdatePostDto = {
+    title: 'updated title ',
+    description: 'updated description',
+    body: 'updated body ',
+    tagList: ['up', 'da', 'ted'],
+    imageFilter: 'updated image',
+    image: 'updated',
   };
 
-  const mockUser: UserEntity = {
-    username: 'Andrey',
-    email: 'andrey44@mail.vgo',
+  const mockImage = 'some binary file';
+
+  const mockBigImage = 'some big binary file';
+
+  const mockFoundedPost = {
+    ...mockNewPost,
+    image: mockImage,
+    author: 1,
     id: 1,
-    password: 'qwerty',
-    summary: '',
-    avatar: '',
+    favoriteCount: 0,
     createdAt: new Date(),
-    posts: [],
-    likedPosts: [],
-    comments: [],
   };
+
+  const postLocation = `https://location/s3/`;
+
+  const postImgCategory = `posts`;
 
   const mockPostRepository = {
-    save: jest
-      .fn()
-      .mockImplementation((createPostDto: PostEntity) =>
-        Promise.resolve({ id: Date.now(), ...createPostDto }),
-      ),
-    findOne: jest
-      .fn()
-      .mockImplementation((postToDeleteId) => Promise.resolve(mockFoundedPost)),
-    delete: jest
-      .fn()
-      .mockImplementation(({ id: postToDeleteId }) => ({ affected: 1 })),
-  };
-
-  const mockUserRepository = {
-    find: jest.fn().mockImplementation((dto) => dto),
-    findOne: jest.fn().mockImplementation((currentUserId) => ({
-      ...mockUser,
-      likedPosts: [],
+    savePost: jest.fn((post) => ({
+      ...mockFoundedPost,
+      ...post,
+      author: mockAuthor,
     })),
-    save: jest.fn().mockImplementation((dto) => Promise.resolve()),
+    getOnePostToUpdate: jest.fn((currentUserId, postToUpdateId) => {
+      if (
+        currentUserId === mockUser.id &&
+        postToUpdateId === mockFoundedPost.id
+      ) {
+        return { ...mockFoundedPost };
+      } else return undefined;
+    }),
+    findManyPostsByTag: jest.fn((tag) => {
+      if (mockFoundedPost.tagList[0] === tag) {
+        return [mockFoundedPost];
+      } else return [];
+    }),
+    findOnePostWithAuthorId: jest.fn((postId) =>
+      postId === mockFoundedPost.id ? mockFoundedPost : undefined,
+    ),
+    deleteOnePost: jest.fn((postToDeleteId) =>
+      postToDeleteId === mockFoundedPost.id ? 1 : null,
+    ),
+    findOnePost: jest.fn((postId) =>
+      postId === mockFoundedPost.id ? mockFoundedPost : undefined,
+    ),
   };
 
-  const mockFollowRepository3 = {};
+  const mockUserService = {
+    findOneUserWithLikedPosts: jest.fn((currentUserId) =>
+      currentUserId === mockUser.id ? mockUser : undefined,
+    ),
+    saveUser: jest.fn((mockUser) => mockUser),
+  };
 
-  beforeEach(async () => {
+  const mockProfileService = {
+    findFollowingUsers: jest.fn((pageOwnerUserId) => Promise.resolve()),
+    getNewsPage: jest.fn((query, followingUserIds) => [mockFoundedPost]),
+  };
+
+  const mockFileService = {
+    prepareImage: jest.fn((image) => image),
+    uploadNewImageToAWSs3: jest.fn((verifiedImage, type) => ({
+      verifiedImage,
+      Location: verifiedImage === mockImage ? postLocation + type : undefined,
+    })),
+  };
+
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostService,
         {
-          provide: getRepositoryToken(PostEntity),
+          provide: PostRepository,
           useValue: mockPostRepository,
         },
         {
-          provide: getRepositoryToken(UserEntity),
-          useValue: mockUserRepository,
+          provide: UserService,
+          useValue: mockUserService,
         },
         {
-          provide: getRepositoryToken(FollowEntity),
-          useValue: mockFollowRepository3,
+          provide: ProfileService,
+          useValue: mockProfileService,
+        },
+        {
+          provide: FileService,
+          useValue: mockFileService,
         },
       ],
     }).compile();
@@ -93,27 +145,222 @@ describe('PostService', () => {
   });
 
   it('should create and return new post', async () => {
-    expect(await service.createPost(mockUser, mockNewPost)).toMatchObject({
-      id: expect.any(Number),
-      ...mockNewPost,
+    expect(
+      await service.createPost(mockUser, {
+        ...mockNewPost,
+        image: postLocation + postImgCategory,
+      }),
+    ).toEqual({
+      ...mockFoundedPost,
+      image: postLocation + postImgCategory,
+      author: mockAuthor,
     });
   });
 
-  it('should find and return post', async () => {
-    expect(await service.findPostById(mockUser.id)).toMatchObject(
-      mockFoundedPost,
-    );
+  it('should throw HttpException 503', async () => {
+    try {
+      expect(
+        await service.creteNewPost(mockUser, mockNewPost, mockBigImage),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`image size must be less than 3MB`);
+    }
   });
 
-  it('should add return chosen post to favorites', async () => {
-    expect(await service.likePost(mockUser.id, '1')).toMatchObject(
-      mockFoundedPost,
-    );
+  it('should create and return new post', async () => {
+    expect(
+      await service.creteNewPost(mockUser, mockNewPost, mockImage),
+    ).toEqual({
+      ...mockFoundedPost,
+      image: postLocation + postImgCategory,
+      author: mockAuthor,
+    });
   });
 
-  it('should subtract from favorites and return post', async () => {
-    expect(await service.disLikePost(mockUser.id, '1')).toMatchObject(
-      mockNewPost,
-    );
+  it('should return edited post', async () => {
+    expect(
+      await service.editPost(
+        mockFoundedPost.id,
+        mockUser.id,
+        mockUpdatedPost,
+        mockImage,
+      ),
+    ).toEqual({
+      ...mockFoundedPost,
+      ...mockUpdatedPost,
+      image: postLocation + postImgCategory,
+      author: mockAuthor,
+    });
   });
+
+  it('should throw HttpException 503', async () => {
+    try {
+      expect(
+        await service.editPost(
+          mockFoundedPost.id,
+          mockUser.id,
+          mockUpdatedPost,
+          mockBigImage,
+        ),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`image size must be less than 3MB`);
+    }
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(
+        await service.editPostById(2, mockUpdatedPost, mockFoundedPost.id),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`can't find post`);
+    }
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(
+        await service.editPostById(mockUser.id, mockUpdatedPost, 2),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`can't find post`);
+    }
+  });
+
+  it('should update existing post', async () => {
+    expect(
+      await service.editPostById(
+        mockUser.id,
+        mockUpdatedPost,
+        mockFoundedPost.id,
+      ),
+    ).toEqual({
+      ...mockFoundedPost,
+      ...mockUpdatedPost,
+      author: mockAuthor,
+    });
+  });
+
+  it('should return posts', async () => {
+    expect(await service.getUserNewsPage(mockUser.id, 'red')).toEqual({
+      ...mockFoundedPost,
+      ...mockUpdatedPost,
+      author: mockAuthor,
+    });
+  });
+
+  it('should return posts by tag', async () => {
+    expect(
+      await service.findManyPostsByTag(mockFoundedPost.tagList[0]),
+    ).toEqual([mockFoundedPost]);
+  });
+
+  it('should return empty array', async () => {
+    expect(await service.findManyPostsByTag('tag')).toEqual([]);
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(await service.deletePost(mockUser.id, '2')).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`can't find post`);
+    }
+  });
+
+  it('should throw HttpException 403', async () => {
+    try {
+      expect(
+        await service.deletePost(2, mockFoundedPost.id.toString()),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`access denied`);
+    }
+  });
+
+  it('should deleteOnePost post by id', async () => {
+    expect(
+      await service.deletePost(mockUser.id, mockFoundedPost.id.toString()),
+    ).toBe(1);
+  });
+
+  it('should throw HttpException 404', async () => {
+    try {
+      expect(await service.likePost(mockUser.id, '2')).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`post doesn't exist`);
+    }
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(await service.likePost(2, mockFoundedPost.id.toString())).toEqual(
+        {},
+      );
+    } catch (e) {
+      expect(e.message).toBe(`wrong user id`);
+    }
+  });
+
+  it('should like and return liked post ', async () => {
+    expect(
+      await service.likePost(mockUser.id, mockFoundedPost.id.toString()),
+    ).toEqual(mockFoundedPost);
+  });
+
+  it('should throw HttpException 404', async () => {
+    try {
+      expect(await service.disLikePost(mockUser.id, '2')).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`post doesn't exist`);
+    }
+  });
+
+  it('should throw HttpException 400', async () => {
+    try {
+      expect(
+        await service.disLikePost(2, mockFoundedPost.id.toString()),
+      ).toEqual({});
+    } catch (e) {
+      expect(e.message).toBe(`wrong user id`);
+    }
+  });
+
+  it('should dislike and return disliked post ', async () => {
+    expect(
+      await service.likePost(mockUser.id, mockFoundedPost.id.toString()),
+    ).toEqual(mockFoundedPost);
+  });
+
+  // it('should return edited post', async () => {
+  //   expect(
+  //     await service.editPostById(
+  //       mockUser.id,
+  //       mockUpdatedPost,
+  //       mockFoundedPost.id,
+  //     ),
+  //   ).toEqual({
+  //     ...mockFoundedPost,
+  //     image: postLocation + postImgCategory,
+  //     author: mockAuthor,
+  //   });
+  // });
+
+  // it('should find and return post', async () => {
+  //   expect(await service.findPostById(mockUser.id)).toMatchObject(
+  //     mockFoundedPost,
+  //   );
+  // });
+  //
+  // it('should add return chosen post to favorites', async () => {
+  //   expect(await service.likePost(mockUser.id, '1')).toMatchObject(
+  //     mockFoundedPost,
+  //   );
+  // });
+  //
+  // it('should subtract from favorites and return post', async () => {
+  //   expect(await service.disLikePost(mockUser.id, '1')).toMatchObject(
+  //     mockNewPost,
+  //   );
+  // });
 });

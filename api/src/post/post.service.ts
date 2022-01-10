@@ -3,17 +3,17 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UserEntity } from '../user/entities/user.entity';
 import { PostEntity } from './entities/post.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { ProfileRepository } from '../profile/profile.repository';
-import { UserRepository } from '../user/user.repository';
 import { PostRepository } from './post.repository';
 import { FileService } from '../file/file.service';
+import { UserService } from '../user/user.service';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly postRepository: PostRepository,
-    private readonly userRepository: UserRepository,
-    private readonly profileRepository: ProfileRepository,
+    private readonly userService: UserService,
+    private readonly profileService: ProfileService,
     private readonly fileService: FileService,
   ) {}
 
@@ -87,13 +87,11 @@ export class PostService {
       updatePostDto.image = Location;
     }
 
-    const updatedPost = await this.editPostById(
+    return await this.editPostById(
       currentUserId,
       updatePostDto,
       postToUpdateId,
     );
-
-    return updatedPost;
   }
 
   async editPostById(
@@ -122,7 +120,7 @@ export class PostService {
     pageOwnerUserId: number,
     query: any,
   ): Promise<PostEntity[]> {
-    const followingUsers = await this.profileRepository.findFollowingUsers(
+    const followingUsers = await this.profileService.findFollowingUsers(
       pageOwnerUserId,
     );
 
@@ -133,7 +131,7 @@ export class PostService {
     const followingUserIds = followingUsers.map((follow) => follow.followingId);
     followingUserIds.push(+pageOwnerUserId);
 
-    return await this.profileRepository.getNewsPage(query, followingUserIds);
+    return await this.postRepository.getNewsPage(query, followingUserIds);
   }
 
   async findManyPostsByTag(tag: string) {
@@ -150,7 +148,7 @@ export class PostService {
     }
 
     if (Number(postToDelete.author) !== currentUserId) {
-      throw new HttpException('access denied ', HttpStatus.FORBIDDEN);
+      throw new HttpException('access denied', HttpStatus.FORBIDDEN);
     }
 
     return await this.postRepository.deleteOnePost(+postToDeleteId);
@@ -159,13 +157,13 @@ export class PostService {
   async likePost(currentUserId: number, postToLikeId: string) {
     const postToLike = await this.findPostById(+postToLikeId);
 
-    if (!postToLike) {
-      throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
-    }
-
-    const user = await this.userRepository.findOneUserWithLikedPosts(
+    const user = await this.userService.findOneUserWithLikedPosts(
       currentUserId,
     );
+
+    if (!user) {
+      throw new HttpException('wrong user id', HttpStatus.BAD_REQUEST);
+    }
 
     const postIndex = user.likedPosts.findIndex(
       (postInLikedPosts) => postInLikedPosts.id === postToLike.id,
@@ -174,7 +172,7 @@ export class PostService {
     if (postIndex === -1) {
       user.likedPosts.push(postToLike);
       postToLike.favoriteCount++;
-      await this.userRepository.saveUser(user);
+      await this.userService.saveUser(user);
       await this.postRepository.savePost(postToLike);
     }
 
@@ -184,13 +182,13 @@ export class PostService {
   async disLikePost(currentUserId: number, postToDislikeId: string) {
     const postToDislike = await this.findPostById(+postToDislikeId);
 
-    if (!postToDislike) {
-      throw new HttpException('wrong post id', HttpStatus.BAD_REQUEST);
-    }
-
-    const user = await this.userRepository.findOneUserWithLikedPosts(
+    const user = await this.userService.findOneUserWithLikedPosts(
       currentUserId,
     );
+
+    if (!user) {
+      throw new HttpException('wrong user id', HttpStatus.BAD_REQUEST);
+    }
 
     const postIndex = user.likedPosts.findIndex(
       (postInLikedPosts) => postInLikedPosts.id === postToDislike.id,
@@ -199,7 +197,7 @@ export class PostService {
     if (postIndex >= 0) {
       user.likedPosts.splice(postIndex, 1);
       postToDislike.favoriteCount--;
-      await this.userRepository.saveUser(user);
+      await this.userService.saveUser(user);
       await this.postRepository.savePost(postToDislike);
     }
 
