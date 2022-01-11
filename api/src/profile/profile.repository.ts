@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ProfileType } from './types/profile.type';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getRepository, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { FollowEntity } from './entities/follow.entity';
-import { PostEntity } from '../post/entities/post.entity';
 
 @Injectable()
 export class ProfileRepository {
@@ -39,23 +38,5 @@ export class ProfileRepository {
     return await this.follow.find({
       followerId: followerId,
     });
-  }
-
-  async getNewsPage(query, followingUserIds): Promise<PostEntity[]> {
-    const queryBuilder = getRepository(PostEntity)
-      .createQueryBuilder('post')
-      .leftJoinAndSelect('post.author', 'author')
-      .where('post.authorId IN (:...ids)', { ids: followingUserIds })
-      .orderBy('post.createdAt', 'DESC');
-
-    if (query.limit) {
-      queryBuilder.limit(query.limit);
-    }
-
-    if (query.offset) {
-      queryBuilder.offset(query.offset);
-    }
-
-    return await queryBuilder.getMany();
   }
 }

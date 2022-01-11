@@ -1,14 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ProfileType } from './types/profile.type';
 import { FollowEntity } from './entities/follow.entity';
-import { UserService } from 'src/user/user.service';
+import { UserService } from '../user/user.service';
 import { ProfileRepository } from './profile.repository';
 
 @Injectable()
 export class ProfileService {
   constructor(
     private readonly userService: UserService,
-    private readonly followRepository: ProfileRepository,
+    private readonly profileRepository: ProfileRepository,
   ) {}
 
   async findOneProfile(
@@ -23,7 +23,7 @@ export class ProfileService {
       throw new HttpException('profile does not exist', HttpStatus.NOT_FOUND);
     }
 
-    const followedProfile = await this.followRepository.findOneFollowedProfile(
+    const followedProfile = await this.profileRepository.findOneFollowedProfile(
       currentUserId,
       user.id,
     );
@@ -48,7 +48,7 @@ export class ProfileService {
       );
     }
 
-    const follow = await this.followRepository.findOneFollowedProfile(
+    const follow = await this.profileRepository.findOneFollowedProfile(
       currentUserId,
       user.id,
     );
@@ -57,7 +57,7 @@ export class ProfileService {
       const followToCreate = new FollowEntity();
       followToCreate.followerId = currentUserId;
       followToCreate.followingId = user.id;
-      await this.followRepository.followProfile(followToCreate);
+      await this.profileRepository.followProfile(followToCreate);
     }
 
     return { ...user, following: true };
@@ -80,12 +80,16 @@ export class ProfileService {
       );
     }
 
-    await this.followRepository.unFollowProfile(currentUserId, user.id);
+    await this.profileRepository.unFollowProfile(currentUserId, user.id);
     return { ...user, following: false };
   }
 
   buildProfileResponse(profile: ProfileType): ProfileType {
     delete profile.email;
     return profile;
+  }
+
+  async findFollowingUsers(userId: number): Promise<FollowEntity[]> {
+    return await this.profileRepository.findFollowingUsers(userId);
   }
 }

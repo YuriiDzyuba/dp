@@ -26,7 +26,7 @@ export class UserRepository {
     return newUser;
   }
 
-  async saveUser(userToSave: UserEntity): Promise<void> {
+  async saveUser(userToSave: UserType): Promise<void> {
     await this.users.save(userToSave);
   }
 

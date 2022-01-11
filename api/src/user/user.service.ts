@@ -95,6 +95,14 @@ export class UserService {
     return await this.userRepository.findOneUserByNameWithPosts(username);
   }
 
+  async findOneUserWithLikedPosts(userId: number): Promise<UserType> {
+    return await this.userRepository.findOneUserWithLikedPosts(userId);
+  }
+
+  async saveUser(user: UserType): Promise<void> {
+    return await this.userRepository.saveUser(user);
+  }
+
   async updateCurrentUser(
     currentUser: UserEntity,
     updateUserDto: UpdateUserDto,

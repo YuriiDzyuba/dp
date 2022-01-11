@@ -11,6 +11,6 @@ import { ProfileRepository } from './profile.repository';
   controllers: [ProfileController],
   providers: [ProfileService, ProfileRepository],
   imports: [TypeOrmModule.forFeature([UserEntity, FollowEntity]), UserModule],
-  exports: [ProfileRepository],
+  exports: [ProfileService],
 })
 export class ProfileModule {}

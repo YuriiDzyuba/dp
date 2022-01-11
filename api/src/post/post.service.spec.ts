@@ -102,7 +102,9 @@ describe('PostService', () => {
   };
 
   const mockProfileService = {
-    findFollowingUsers: jest.fn((pageOwnerUserId) => Promise.resolve()),
+    findFollowingUsers: jest.fn((pageOwnerUserId) =>
+      pageOwnerUserId !== mockUser.id ? [mockUser] : [],
+    ),
     getNewsPage: jest.fn((query, followingUserIds) => [mockFoundedPost]),
   };
 
@@ -242,12 +244,8 @@ describe('PostService', () => {
     });
   });
 
-  it('should return posts', async () => {
-    expect(await service.getUserNewsPage(mockUser.id, 'red')).toEqual({
-      ...mockFoundedPost,
-      ...mockUpdatedPost,
-      author: mockAuthor,
-    });
+  it('should return empty array', async () => {
+    expect(await service.getUserNewsPage(mockUser.id, 'red')).toEqual([]);
   });
 
   it('should return posts by tag', async () => {
@@ -331,36 +329,4 @@ describe('PostService', () => {
       await service.likePost(mockUser.id, mockFoundedPost.id.toString()),
     ).toEqual(mockFoundedPost);
   });
-
-  // it('should return edited post', async () => {
-  //   expect(
-  //     await service.editPostById(
-  //       mockUser.id,
-  //       mockUpdatedPost,
-  //       mockFoundedPost.id,
-  //     ),
-  //   ).toEqual({
-  //     ...mockFoundedPost,
-  //     image: postLocation + postImgCategory,
-  //     author: mockAuthor,
-  //   });
-  // });
-
-  // it('should find and return post', async () => {
-  //   expect(await service.findPostById(mockUser.id)).toMatchObject(
-  //     mockFoundedPost,
-  //   );
-  // });
-  //
-  // it('should add return chosen post to favorites', async () => {
-  //   expect(await service.likePost(mockUser.id, '1')).toMatchObject(
-  //     mockFoundedPost,
-  //   );
-  // });
-  //
-  // it('should subtract from favorites and return post', async () => {
-  //   expect(await service.disLikePost(mockUser.id, '1')).toMatchObject(
-  //     mockNewPost,
-  //   );
-  // });
 });
