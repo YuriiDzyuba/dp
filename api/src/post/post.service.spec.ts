@@ -7,7 +7,7 @@ import { FileService } from '../file/file.service';
 import { UserService } from '../user/user.service';
 import { ProfileService } from '../profile/profile.service';
 import { UpdatePostDto } from './dto/update-post.dto';
-import e from 'express';
+import { UNIT_TEST_ERR } from '../consts/test.consts';
 
 describe('PostService', () => {
   let service: PostService;
@@ -161,9 +161,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 503', async () => {
     try {
-      expect(
-        await service.creteNewPost(mockUser, mockNewPost, mockBigImage),
-      ).toEqual({});
+      expect(await service.creteNewPost(mockUser, mockNewPost, mockBigImage));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`image size must be less than 3MB`);
     }
@@ -204,7 +203,8 @@ describe('PostService', () => {
           mockUpdatedPost,
           mockBigImage,
         ),
-      ).toEqual({});
+      );
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`image size must be less than 3MB`);
     }
@@ -214,7 +214,8 @@ describe('PostService', () => {
     try {
       expect(
         await service.editPostById(2, mockUpdatedPost, mockFoundedPost.id),
-      ).toEqual({});
+      );
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`can't find post`);
     }
@@ -222,9 +223,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 400', async () => {
     try {
-      expect(
-        await service.editPostById(mockUser.id, mockUpdatedPost, 2),
-      ).toEqual({});
+      expect(await service.editPostById(mockUser.id, mockUpdatedPost, 2));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`can't find post`);
     }
@@ -260,7 +260,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 400', async () => {
     try {
-      expect(await service.deletePost(mockUser.id, '2')).toEqual({});
+      expect(await service.deletePost(mockUser.id, '2'));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`can't find post`);
     }
@@ -268,9 +269,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 403', async () => {
     try {
-      expect(
-        await service.deletePost(2, mockFoundedPost.id.toString()),
-      ).toEqual({});
+      expect(await service.deletePost(2, mockFoundedPost.id.toString()));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`access denied`);
     }
@@ -284,7 +284,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 404', async () => {
     try {
-      expect(await service.likePost(mockUser.id, '2')).toEqual({});
+      expect(await service.likePost(mockUser.id, '2'));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`post doesn't exist`);
     }
@@ -292,9 +293,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 400', async () => {
     try {
-      expect(await service.likePost(2, mockFoundedPost.id.toString())).toEqual(
-        {},
-      );
+      expect(await service.likePost(2, mockFoundedPost.id.toString()));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`wrong user id`);
     }
@@ -308,7 +308,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 404', async () => {
     try {
-      expect(await service.disLikePost(mockUser.id, '2')).toEqual({});
+      expect(await service.disLikePost(mockUser.id, '2'));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`post doesn't exist`);
     }
@@ -316,9 +317,8 @@ describe('PostService', () => {
 
   it('should throw HttpException 400', async () => {
     try {
-      expect(
-        await service.disLikePost(2, mockFoundedPost.id.toString()),
-      ).toEqual({});
+      expect(await service.disLikePost(2, mockFoundedPost.id.toString()));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`wrong user id`);
     }
