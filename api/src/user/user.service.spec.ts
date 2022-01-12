@@ -5,6 +5,7 @@ import { UserRepository } from './user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { createUniqueString } from '../utils/createUniqueString';
 import { FileService } from '../file/file.service';
+import { UNIT_TEST_ERR } from '../consts/test.consts';
 
 describe('UserService', () => {
   test('will receive process.env variables', () => {
@@ -135,11 +136,8 @@ describe('UserService', () => {
 
   it('should throw HttpException 422', async () => {
     try {
-      expect(await service.registerNewUser(mockUser)).toEqual({
-        ...mockNewUserDbData,
-        email: mockNewUser.email,
-        username: mockNewUser.username,
-      });
+      expect(await service.registerNewUser(mockUser));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe('user exists');
     }
@@ -166,9 +164,8 @@ describe('UserService', () => {
 
   it('should throw HttpException 400', async () => {
     try {
-      expect(await service.login(mockNewUser)).toEqual({
-        ...mockUser,
-      });
+      expect(await service.login(mockNewUser));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(
         `user with email: ${mockNewUser.email} is not exist`,
@@ -178,9 +175,8 @@ describe('UserService', () => {
 
   it('should throw HttpException 403', async () => {
     try {
-      expect(await service.login(mockWrongPasswordUser)).toEqual({
-        ...mockUser,
-      });
+      expect(await service.login(mockWrongPasswordUser));
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe('wrong password');
     }
@@ -257,12 +253,8 @@ describe('UserService', () => {
           },
           'some avatar',
         ),
-      ).toEqual({
-        ...mockUser,
-        summary: 'updated summary',
-        username: 'existingName',
-        avatar: mockAvatar,
-      });
+      );
+      throw new Error(UNIT_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe('username should be unique');
     }

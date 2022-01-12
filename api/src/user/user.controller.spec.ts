@@ -12,6 +12,7 @@ import { FileModule } from '../file/file.module';
 import { UserController } from './user.controller';
 import { PostEntity } from '../post/entities/post.entity';
 import { UserRepository } from './user.repository';
+import { INTEGRATION_TEST_ERR } from '../consts/test.consts';
 
 describe('PostController', () => {
   test('will receive process.env variables', () => {
@@ -99,7 +100,8 @@ describe('PostController', () => {
 
   it('should throw HttpException 422', async () => {
     try {
-      expect(await controller.registerNewUser(mockNewUser)).toEqual({});
+      expect(await controller.registerNewUser(mockNewUser));
+      throw new Error(INTEGRATION_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`user exists`);
     }

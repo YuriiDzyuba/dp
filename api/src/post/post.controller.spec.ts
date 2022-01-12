@@ -12,13 +12,13 @@ import { CreatePostDto } from './dto/create-post.dto';
 import testConfig from '../config/ormConfigTest';
 import { getConnection } from 'typeorm';
 import { UserModule } from '../user/user.module';
-import e from 'express';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { createUniqueString } from '../utils/createUniqueString';
 import { PostRepository } from './post.repository';
 import { ProfileModule } from '../profile/profile.module';
 import { FileModule } from '../file/file.module';
 import { UserType } from '../user/types/user.type';
+import { INTEGRATION_TEST_ERR } from '../consts/test.consts';
 
 describe('PostController', () => {
   let controller: PostController;
@@ -121,7 +121,8 @@ describe('PostController', () => {
           mockNewPost,
           mockBigImageFile as any,
         ),
-      ).toEqual({});
+      );
+      throw new Error(INTEGRATION_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe(`image size must be less than 3MB`);
     }
@@ -159,7 +160,8 @@ describe('PostController', () => {
 
   it('should throw error', async () => {
     try {
-      expect(await controller.findOnePostsById(404)).toBe(false);
+      expect(await controller.findOnePostsById(404));
+      throw new Error(INTEGRATION_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe("post doesn't exist");
     }
@@ -185,7 +187,8 @@ describe('PostController', () => {
 
   it('should throw error', async () => {
     try {
-      expect(await controller.deletePost(1, '404')).toBe(false);
+      expect(await controller.deletePost(1, '404'));
+      throw new Error(INTEGRATION_TEST_ERR);
     } catch (e) {
       expect(e.message).toBe("can't find post");
     }
